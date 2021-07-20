@@ -196,14 +196,12 @@ def msgProc(id, msg, vksession, myapi, upload, name):
                 }
             ).json()
 
-            #print(response)
-
             text = response.get('AbstractText')
             image_url = response.get('Image')
             wiki = response.get('AbstractURL')
             attachments = []
 
-            if image_url or text:
+            if image_url:
                 image = session.get('https://duckduckgo.com/' + image_url, stream=True)
                 photo = upload.photo_messages(photos=image.raw)[0]
 
@@ -219,6 +217,16 @@ def msgProc(id, msg, vksession, myapi, upload, name):
                         'message': text,
                         'random_id': get_random_id(),
                         'attachment': ','.join(attachments)
+                    })
+
+                return 'не благодари'
+
+            elif text:
+                vksession.method('messages.send',
+                    {
+                        'user_id': id,
+                        'message': text,
+                        'random_id': get_random_id(),
                     })
 
                 return 'не благодари'
