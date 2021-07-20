@@ -104,19 +104,31 @@ def msgProc(id, msg, vksession, myapi, upload, name):
         if contain5(msg, ['как меня зовут']):
             return name[0] + ' ' + name[1]
 
-        if contain5(msg, [ 'привет', 'даров', 'hi', 'hello', 'шалом', 'салам' ]):
-            return choo5e([ 'привет', 'здарова заебал', 'как сам чел', 'Здравия желаю', 'Здравствуй, ' + name[0] ])
+        elif msg.startswith('кто ты'):
+            return choo5e([ 'да', 'тебя это ебать не должно', 'я?', 'я бот ашо', 'не важно кто, важно кто' ])
+
+        if contain5(msg, [ 'привет', 'даров', 'hi', 'hello', 'шалом', 'салам', 'добрый ', 'здравствуй' ]):
+            return choo5e([ 'здарова, отец', 'привет', 'здарова заебал', 'как сам чел', 'Здравия желаю', 'Здравствуй, ' + name[0] ])
 
         elif end5(msg, 'да'):
-            return choo5e([ 'пизда', 'манда', 'провода', 'поезда', 'пидора слова' ])
+            return choo5e([ 'пизда', 'манда', 'провода', 'поезда', 'пидора слова', 'правильно' ])
         elif end5(msg, 'нет'):
             return choo5e([ 'пидора ответ', 'минет', 'шлюхи аргумент' ])
-        elif contain5(msg, [ 'хах', 'хпх', 'хкх', 'hah', 'hhh', 'jaj', '[f[', 'хех', 'хых', 'а0а', 'фчф' ]) or i5(msg, [ 'ор', 'ржака', 'ржу', 'ржомба' ]):
+        elif contain5(msg, [ 'хах', 'хпх', 'хкх', 'hah', 'hhh', 'jaj', '[f[', 'хех', 'хых', 'а0а', 'фчф', 'ор', 'ржака', 'ржу', 'ржомба' ]):
             return choo5e([
                 'РЖОМБА', 'Ебать я ору тоже', 'АХАХАХАХАХ))', 'Невероятная ржака', 'ахах)0', 'литчно я уже под столом',
                 ')))))00))))))))))0))))))0))00000000)))))))))))))))))))))))0)0)0))0)0)0)))))',
                 'лолирую', 'ржу уже третий день', 'Ржакаем всем сервером))0'
             ])
+
+        elif msg.startswith('правильно'):
+            return 'спасибо брат'
+        elif msg.startswith('спасибо' ):
+            return choo5e([ 'обращайся, братик', 'пожалуйста', 'чел ;3' ])
+        elif msg.startswith('зачем'):
+            return choo5e([ 'затем', 'так надо' ])
+        elif msg.startswith('почему'):
+            return choo5e([ 'потому', 'по клавиатуре' ])
 
         elif end5(msg, 'ладно'):
             return 'прохладно'
@@ -129,6 +141,8 @@ def msgProc(id, msg, vksession, myapi, upload, name):
         elif end5(msg, 'лимонадно'):
             return 'ладно'
 
+        elif msg.startswith('пидора ответ'):
+            return choo5e([ 'шлюхи аргумент' ])
         elif contain5(msg, [ 'пидор' ]):
             return choo5e([ 'сам пидор', 'пошел нахуй', 'gjitk yf[eq', 'sosi', 'ты че сука', 'а по ебалу??' ])
         elif contain5(msg, [ 'иди', 'пошел', 'пашел', 'пашол' ]) and contain5(msg, [ 'хуй', 'пизду' ]):
@@ -143,6 +157,12 @@ def msgProc(id, msg, vksession, myapi, upload, name):
             return 'РЕЗНЯЯЯЯЯЯЯЯЯ'
         elif msg.find('гном') != -1 :
             return 'гном тут только ты'    
+        elif contain5(msg, [ 'уебок', 'уебан', 'мудак', 'гнида', 'хуесос', 'мудила', 'ебан', 'конченый', 'долбаеб' ]):
+            return choo5e([ 'ой да иди в пизду долбаеб блять', 'ебало закрой', 'хули ты обзываешься пидорас', 'говоришь на меня переводишь на себя нахуй' ])
+        elif msg.find('ахуел') != -1 or msg.find('охуел') != -1:
+            return choo5e([ 'сам охуел', 'а может ты охуел?', 'нет' ])
+        elif msg.find('заебал') != -1:
+            return choo5e([ 'сам заебал', 'это ты заебал' ])
 
 
 
@@ -174,7 +194,7 @@ def msgProc(id, msg, vksession, myapi, upload, name):
 
         # HUINYA
 
-        elif i5(msg, ['поздравить данила']):
+        elif contain5(msg, [ 'поздравить', 'подравляю' ]) and contain5(msg, [ 'данила', 'донила', 'даниила' ]):
             cur_time = time.time()
             if (cur_time - MyClass.danil_bd_timer > 120):
                 MyClass.danil_bd_timer = cur_time
@@ -182,6 +202,12 @@ def msgProc(id, msg, vksession, myapi, upload, name):
                     owner_id = '-205950303',       # my id 190344587 community 205950303
                     from_group = 1,
                     message = 'ебать Данил с др нахуй\nОт: ' + name[0])
+                vksession.method('messages.send',
+                    {
+                        'user_id': 187191431,
+                        'message': str(name[0]) + ' поздравляет тебя с др',
+                        'random_id': get_random_id(),
+                    })
                 return 'готово ебать'
             else:
                 return 'братан, слишком часто'
