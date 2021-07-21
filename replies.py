@@ -217,13 +217,10 @@ def msgProc(id, msg, vksession, myapi, upload):
             msg_split = msg.split('\n')
             msg_split_command = msg_split[0].split(' ')
             id_ = msg_split_command[1]
-            if len(msg_split_command) == 3:
-                if msg_split_command[2] == 'анон':
-                    text = msg_split[1]
-                else:
-                    text = userData['name'][0] + ' оставил тебе сообщение:\n' + msg_split[1]
+            if len(msg_split_command) > 2 and msg_split_command[2] == 'анон':
+                text = msg_split[1]
             else:
-                text = userData['name'][0] + ' оставил тебе сообщение:\n' + msg_split[1]   
+                text = userData['name'][0] + ' оставил тебе сообщение:\n' + msg_split[1]
             return sendMsg2id(vksession, id_, text)
 
         elif msg.startswith('отправить'):
@@ -234,13 +231,10 @@ def msgProc(id, msg, vksession, myapi, upload):
             id_ = users_db.findIdByName(msg_split_command[1])
             if not id_:
                 return 'такого чела нет в моих с(письках)'
-            if len(msg_split_command) == 3:
-                if msg_split_command[2] == 'анон':
-                    text = msg_split[1]
-                else:
-                    text = userData['name'][0] + ' оставил тебе сообщение:\n' + msg_split[1]
+            if len(msg_split_command) > 2 and msg_split_command[2] == 'анон':
+                text = msg_split[1]
             else:
-                text = msg_split[1]   
+                text = userData['name'][0] + ' оставил тебе сообщение:\n' + msg_split[1]
             return sendMsg2id(vksession, id_, text)
 
         elif msg.startswith('поиск'):
@@ -409,7 +403,7 @@ def msgProc(id, msg, vksession, myapi, upload):
             return choo5e([ 'пизда', 'манда', 'провода', 'поезда', 'пидора слова', 'правильно' ])
         elif _end5(msg, 'нет'):
             return choo5e([ 'пидора ответ', 'минет', 'шлюхи аргумент' ])
-        elif endswith_list(msg, [ 'хах', 'хвх', 'аха', 'хпх', 'хкх', 'hah', 'hhh', 'jaj', '[f[', 'хех', 'хых', 'а0а', 'фчф', 'ору', 'ржака', 'ржу', 'ржомба' ]):
+        elif endswith_list(msg, [ '[ff', 'хаа', 'хах', 'хвх', 'аха', 'хпх', 'хкх', 'hah', 'hhh', 'jaj', '[f[', 'хех', 'хых', 'а0а', 'фчф', 'ору', 'ржака', 'ржу', 'ржомба' ]):
             return choo5e([
                 'РЖОМБА', 'Ебать я ору тоже', 'АХАХАХАХАХ))', 'Невероятная ржака', 'ахах)0',
                 ')))))00))))))))))0))))))0))00000000)))))))))))))))))))))))0)0)0))0)0)0)))))',
