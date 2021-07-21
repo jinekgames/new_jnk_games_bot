@@ -4,11 +4,16 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 
 import time
 
+import json
+
 # importing variables of bot init
 from vars import group_token, debug, sleep_timeout, admin_token
 
 # importing message pricessing function
 from replies import msgProc
+
+# importing users database module
+import users_db
 
 
 # getting api for connecting to my community
@@ -31,6 +36,16 @@ def sendMsg(id, msg):
 # start console message
 print('\n\n\nBot has been strted. Messages log:\n\n')
 
+
+# open json users list
+with open("users.json", "r") as f:
+    userslist = json.load(f)
+
+
+# db dumb timer
+db_dubm_time = time.ctime()
+
+
 # main loop
 for event in longpoll.listen():
 
@@ -42,9 +57,22 @@ for event in longpoll.listen():
             msg = event.text.lower()
             id = event.user_id
 
+
             # get sender name by id
             response = api.users.get(user_ids = id)
-            name = [ response[0]['first_name'], response[0]['last_name'] ]
+            name = [ str(response[0]['first_name']), str(response[0]['last_name']) ]
+            
+
+            # search user in json
+            if not (str(id) in userslist):
+                print('NEW USER\n')
+                userslist[str(id)] = {
+                    'name': name,
+                    'admin': False,
+                    'group': '',
+                    'nick': name[0]
+                }
+
 
             # processing the message
             print(name[0], name[1], 'id=' + str(id))
@@ -54,6 +82,11 @@ for event in longpoll.listen():
             # turning bot off condition
             if msg == '3348':
                 sendMsg(id, 'ok')
+
+                userslist_update_str = json.dumps(userslist, sort_keys=True, indent=4)
+                print('\n\n', userslist_update_str, '\n\n\n\n')
+                with open('users.json', 'w') as f:
+                    f.write(userslist_update_str)
                 break
 
             # get answer
@@ -78,5 +111,13 @@ for event in longpoll.listen():
                 print('\nAnswered')
 
             print('\n\n')
+
+
+    if (time.ctime() - db_dubm_time > 1800):
+        userslist_update_str = json.dumps(userslist, sort_keys=True, indent=4)
+        print('\n\n', userslist_update_str, '\n\n\n\n')
+        with open('users.json', 'w') as f:
+            f.write(userslist_update_str)
+
 
     time.sleep(sleep_timeout)
