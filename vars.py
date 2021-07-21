@@ -1,4 +1,4 @@
-group_token = '11111'
-debug = True
+group_token = '1111'
+debug = False
 sleep_timeout = 0.1
-admin_token = '11111'
+admin_token = '1111'
