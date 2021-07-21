@@ -1,24 +1,26 @@
+from os import startfile
 import random
 import time
-from time import daylight
 random.seed(version=2)
 import requests
 session = requests.Session()
+import json
 import vk_api
 from vk_api.utils import get_random_id
 
 import datetime
+import calendar
 
 from scedullar import mmm19_scedullar
+import users_db
+
+from scedullar import weekday_ru_en
 
 
 # some static variables
 class SomeVars:
     timers = {}
-    elite = {
-        '190344587': True,
-        '214156033': True
-    }
+    timeout = 60
 
 
 # check if txt does contain str
@@ -111,7 +113,7 @@ def endswith_list(msg, list):
 
 def sendMsg2id(vksession, id, msg):
     cur_time = time.time()
-    if (not id in SomeVars.timers) or (cur_time - SomeVars.timers[id] > 120):
+    if (not id in SomeVars.timers) or (cur_time - SomeVars.timers[id] > SomeVars.timeout):
         SomeVars.timers[id] = cur_time
         rtrn_msg = ''
         try:
@@ -135,19 +137,60 @@ def sendMsg2id(vksession, id, msg):
 
 
 # returns answer accornding to message
-def msgProc(id, msg, vksession, myapi, upload, name):
+def msgProc(id, msg, vksession, myapi, upload):
 
 
     if msg != '':
 
 
 
-    # HUINYA
+        # getting userdata from db
+        userData = users_db.getUserData(id)
+        if not userData:
+            return 'возникла ошибка при поиске вашей записи в базе данных, пожалуйста, сообщите админу\n@eugene_programmist'
+
+
+
+
+        # HUINYA
+
+        if msg.startswith('makeadmin'):
+            if not users_db.getUserData(id)['admin']:
+                return 'назначать админов могут толкьо админы'
+
+            id_ = msg.split(' ')
+            if len(id_) != 2:
+                return 'incorrect sintaxys'
+            id_ = id_[1]
+            userData_ = users_db.getUserData(id_)
+            if not userData_:
+                return 'user not found'
+            userData_['admin'] = True
+            users_db.add2List(id_, userData_)
+            users_db.dumbList()
+            return 'done'
+
+        if msg.startswith('makenotadmin'):
+            if not users_db.getUserData(id)['admin']:
+                return 'убирать админов могут только админы'
+
+            id_ = msg.split(' ')
+            if len(id_) != 2:
+                return 'incorrect sintaxys'
+            id_ = id_[1]
+            userData_ = users_db.getUserData(id_)
+            if not userData_:
+                return 'user not found'
+            userData_['admin'] = False
+            users_db.add2List(id_, userData_)
+            users_db.dumbList()
+            return 'done'
+
 
         if contain5(msg, [ 'поздравить', 'подравляю', 'поздравляю', 'с др' ]):
 
             if contain5(msg, [ 'данила', 'донила', 'даниила' ]):
-                return sendMsg2id(vksession, 187191431, name[0] + ' поздравил тебя с др')
+                return sendMsg2id(vksession, 187191431, userData['name'][0] + ' поздравил тебя с др')
 
                 # это типа раньше он еще пост на стене дропал (чисток акпример тут пока будет)
                 myapi.wall.post(
@@ -163,8 +206,9 @@ def msgProc(id, msg, vksession, myapi, upload, name):
             if len(id_) != 9 or (not id_.isdigit()):
                 return 'введите корректный айди чела которого надо послать'
             else:
-                if id_ in SomeVars.elite:
-                    return 'сам пошел нахуй'
+                if users_db.getUserData(id_):
+                    if users_db.getUserData(id_)['admin']:
+                        return 'сам пошел нахуй'
                 return sendMsg2id(vksession, id_, 'ктото послал тебя нахуй')
 
         elif msg.startswith('написать'):
@@ -177,13 +221,27 @@ def msgProc(id, msg, vksession, myapi, upload, name):
                 if msg_split_command[2] == 'анон':
                     text = msg_split[1]
                 else:
-                    text = name[0] + ' оставил тебе сообщение:\n' + msg_split[1]
+                    text = userData['name'][0] + ' оставил тебе сообщение:\n' + msg_split[1]
             else:
-                text = name[0] + ' оставил тебе сообщение:\n' + msg_split[1]   
+                text = userData['name'][0] + ' оставил тебе сообщение:\n' + msg_split[1]   
             return sendMsg2id(vksession, id_, text)
 
-        
-
+        elif msg.startswith('отправить'):
+            if (msg.find('\n') == -1) or len(msg) < 12:
+                return 'чел ты...\nнеправильно составил команду\nнадо так:\n\nотправить jnk\nчел ты гений'
+            msg_split = msg.split('\n')
+            msg_split_command = msg_split[0].split(' ')
+            id_ = users_db.findIdByName(msg_split_command[1])
+            if not id_:
+                return 'такого чела нет в моих с(письках)'
+            if len(msg_split_command) == 3:
+                if msg_split_command[2] == 'анон':
+                    text = msg_split[1]
+                else:
+                    text = userData['name'][0] + ' оставил тебе сообщение:\n' + msg_split[1]
+            else:
+                text = msg_split[1]   
+            return sendMsg2id(vksession, id_, text)
 
         elif msg.startswith('поиск'):
 
@@ -236,19 +294,116 @@ def msgProc(id, msg, vksession, myapi, upload, name):
             else:
                 return 'нихуя не нашлось'
 
+        
+
+        # USER DATA FUNCTIONS
+
+        elif msg.startswith('сменить ник'):
+            new_nick = msg.split(' ')[2]
+            userData['nick'] = new_nick
+            users_db.add2List(id, userData)
+            print(userData)
+            return 'изи'
+
+
+
+                # SHARAGA
+            
+        elif msg == 'пн' or msg == 'понедельник':
+            with open("scedullar.json", "r") as f:
+                scedullar = json.load(f)
+            return scedullar['Monday']
+        elif msg == 'вт' or msg == 'вторник':
+            with open("scedullar.json", "r") as f:
+                scedullar = json.load(f)
+            return scedullar['Tuesday']
+        elif msg == 'ср' or msg == 'среда':
+            with open("scedullar.json", "r") as f:
+                scedullar = json.load(f)
+            return scedullar['Wednesday']
+        elif msg == 'чт'or msg == 'четверг':
+            with open("scedullar.json", "r") as f:
+                scedullar = json.load(f)
+            return scedullar['Thursday']
+        elif msg == 'пт' or msg == 'пятница':
+            with open("scedullar.json", "r") as f:
+                scedullar = json.load(f)
+            return scedullar['Friday']
+        elif msg == 'сб' or msg == 'суббота':
+            with open("scedullar.json", "r") as f:
+                scedullar = json.load(f)
+            return scedullar['Saturday']
+        elif msg == 'вс' or msg == 'воскресенье':
+            with open("scedullar.json", "r") as f:
+                scedullar = json.load(f)
+            return scedullar['Sunday']
+
+        elif msg == 'сегодня':
+            with open("scedullar.json", "r") as f:
+                scedullar = json.load(f)
+            return scedullar[calendar.day_name[datetime.datetime.today().weekday()]]
+        elif msg == 'завтра':
+            today = datetime.date.today()
+            tomorrow = datetime.date(today.year, today.month, today.day+1)
+            with open("scedullar.json", "r") as f:
+                scedullar = json.load(f)
+            return scedullar[calendar.day_name[tomorrow.weekday()]]
+
+        elif msg == 'неделя':
+            with open("scedullar.json", "r") as f:
+                scedullar = json.load(f)
+            text = ''
+            for day in scedullar:
+                text.join(scedullar[day] + '\n\n')
+            return text
+
+
+        elif msg.startswith('редактировать'):
+
+            if not users_db.getUserData(id)['admin']:
+                return 'менять расписание могут толкьо админы'
+
+            try:
+
+                commands = msg.split('\n')
+                start_pointer = len(commands[0])
+                if len(commands) < 2:
+                    return 'неправильная команда'
+                commands = commands[0].split(' ')
+                if len(commands) < 2:
+                    return 'неправильная команда'
+
+                weekday = weekday_ru_en( commands[1] )
+                if not weekday:
+                    return 'неправильная команда'
+                new_text = msg[ start_pointer+1 : len(msg) ]
+
+                with open("scedullar.json", "r") as f:
+                    scedullar = json.load(f)
+                del scedullar[weekday]
+                scedullar[weekday] = new_text
+                scedullar_update_str = json.dumps(scedullar, sort_keys=True, indent=4)
+                with open('scedullar.json', 'w') as f:
+                    f.write(scedullar_update_str)
+
+            except BaseException:
+
+                return 'случилась ошибка скажи одмену пустб починит'
+
+            return 'проверять будеш?'
 
 
 
         # BASE ANSWERS
 
         elif contain5(msg, ['как меня зовут']):
-            return name[0] + ' ' + name[1]
+            return userData['name'][0] + ' ' + userData['name'][1]
 
         elif msg.startswith('кто ты'):
             return choo5e([ 'да', 'тебя это ебать не должно', 'я?', 'я бот ашо', 'не важно кто, важно кто' ])
 
         if contain5(msg, [ 'привет', 'даров', 'hi', 'hello', 'шалом', 'салам', 'добрый ', 'здравствуй' ]):
-            return choo5e([ 'здарова, отец', 'привет', 'здарова заебал', 'как сам чел', 'Здравия желаю', 'Здравствуй, ' + name[0] ])
+            return choo5e([ 'здарова, отец', 'привет', 'здарова заебал', 'как сам чел', 'Здравия желаю', 'Здравствуй, ' + userData['name'][0] ])
 
         elif _end5(msg, 'да'):
             return choo5e([ 'пизда', 'манда', 'провода', 'поезда', 'пидора слова', 'правильно' ])
@@ -307,32 +462,6 @@ def msgProc(id, msg, vksession, myapi, upload, name):
             return choo5e([ 'сам охуел', 'а может ты охуел?', 'нет' ])
         elif msg.find('заебал') != -1:
             return choo5e([ 'сам заебал', 'это ты заебал' ])
-
-
-
-        # SHARAGA
-            
-        elif i5(msg, [ 'пн', 'понедельник' ]):
-            return mmm19_scedullar[0]
-        elif i5(msg, [ 'вт', 'вторник' ]):
-            return mmm19_scedullar[1]
-        elif i5(msg, [ 'ср', 'среда' ]):
-            return mmm19_scedullar[2]
-        elif i5(msg, [ 'чт', 'четверг' ]):
-            return mmm19_scedullar[3]
-        elif i5(msg, [ 'пт', 'пятница' ]):
-            return mmm19_scedullar[4]
-        elif i5(msg, [ 'сб', 'суббота' ]):
-            return mmm19_scedullar[5]
-        elif i5(msg, [ 'вс', 'воскресенье' ]):
-            return mmm19_scedullar[6]
-
-        elif i5(msg, [ 'сегодня' ]):
-            return mmm19_scedullar[datetime.datetime.today().weekday()]
-        elif i5(msg, [ 'завтра' ]):
-            today = datetime.date.today()
-            tomorrow = datetime.date(today.year, today.month, today.day+1)
-            return mmm19_scedullar[tomorrow.weekday()]
 
 
 

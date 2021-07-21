@@ -1,6 +1,7 @@
 import vk_api
 from vk_api import VkUpload
 from vk_api.longpoll import VkLongPoll, VkEventType
+from vk_api.utils import get_random_id
 
 import time
 
@@ -28,8 +29,8 @@ myapi = mysession.get_api()
 
 
 # send message to id
-def sendMsg(id, msg):
-    session.method('messages.send', { 'user_id': id, 'message': msg, 'random_id': 0 })
+def sendMsg(id, msg, attachments = ''):
+    session.method('messages.send', { 'user_id': id, 'message': msg, 'random_id': 0, 'attachment': ','.join(attachments) })
 
 
 
@@ -37,13 +38,10 @@ def sendMsg(id, msg):
 print('\n\n\nBot has been strted. Messages log:\n\n')
 
 
-# open json users list
-with open("users.json", "r") as f:
-    userslist = json.load(f)
-
-
 # db dumb timer
-db_dubm_time = time.ctime()
+db_dubm_time = time.time()
+# log onto db
+users_db.updateList()
 
 
 # main loop
@@ -56,49 +54,60 @@ for event in longpoll.listen():
             # get and convert message to lower case
             msg = event.text.lower()
             id = event.user_id
-
-
-            # get sender name by id
-            response = api.users.get(user_ids = id)
-            name = [ str(response[0]['first_name']), str(response[0]['last_name']) ]
             
 
             # search user in json
-            if not (str(id) in userslist):
+            userData = users_db.getUserData(id)
+            if not userData:
                 print('NEW USER\n')
-                userslist[str(id)] = {
+                # get sender name by id
+                response = api.users.get(user_ids = id)
+                name = [ str(response[0]['first_name']), str(response[0]['last_name']) ]
+                # save user data
+                userData = {
                     'name': name,
                     'admin': False,
                     'group': '',
                     'nick': name[0]
                 }
+                # save data in db
+                users_db.add2List(id, userData)
+                users_db.dumbList()
 
 
             # processing the message
-            print(name[0], name[1], 'id=' + str(id))
+            print(userData['name'][0], userData['name'][1], 'id=' + str(id))
             print(time.ctime())
             print(msg)
 
             # turning bot off condition
-            if msg == '3348':
-                sendMsg(id, 'ok')
-
-                userslist_update_str = json.dumps(userslist, sort_keys=True, indent=4)
-                print('\n\n', userslist_update_str, '\n\n\n\n')
-                with open('users.json', 'w') as f:
-                    f.write(userslist_update_str)
-                break
+            if msg == 'стоп':
+                if userData['admin']:
+                    sendMsg(id, 'ok')
+                    users_db.dumbList()
+                    break
+                else:
+                    attachments = []
+                    attachments.append( 'photo-205950303_457239039' )
+                    session.method('messages.send',
+                        {
+                            'user_id': id,
+                            'message': 'ты не админ',
+                            'random_id': get_random_id(),
+                            'attachment': ','.join(attachments)
+                        })
+                    # image photo190344587_457278276
 
             # get answer
 
             if debug:
 
-                reply = msgProc(id, msg, session, myapi, upload, name)
+                reply = msgProc(id, msg, session, myapi, upload)
             
             else:
         
                 try:
-                    reply = msgProc(id, msg, session, myapi, upload, name)
+                    reply = msgProc(id, msg, session, myapi, upload)
                 except BaseException:
                     reply = 'ты блять его убил нахуй\nты его захуярил'
                     file = open('error_msgs.txt','a', encoding='utf-8')
@@ -113,11 +122,9 @@ for event in longpoll.listen():
             print('\n\n')
 
 
-    if (time.ctime() - db_dubm_time > 1800):
-        userslist_update_str = json.dumps(userslist, sort_keys=True, indent=4)
-        print('\n\n', userslist_update_str, '\n\n\n\n')
-        with open('users.json', 'w') as f:
-            f.write(userslist_update_str)
+    # if (time.time() - db_dubm_time > 1800):
+    #     users_db.dumbList()
+    #     db_dubm_time = time.time()
 
 
     time.sleep(sleep_timeout)

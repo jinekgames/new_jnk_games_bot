@@ -1,38 +1,11 @@
 {
     "190344587": {
-        "admin": false,
+        "admin": true,
         "group": "",
         "name": [
-            "Zhenya",
-            "Kalinin"
+            "\u0416\u0435\u043d\u044f",
+            "\u041a\u0430\u043b\u0438\u043d\u0438\u043d"
         ],
-        "nick": "Zhenya"
-    },
-    "193851368": {
-        "admin": false,
-        "group": "",
-        "name": [
-            "Sergey",
-            "Bespalov"
-        ],
-        "nick": "Sergey"
-    },
-    "210809692": {
-        "admin": false,
-        "group": "",
-        "name": [
-            "Alexey",
-            "Termenev"
-        ],
-        "nick": "Alexey"
-    },
-    "214156033": {
-        "admin": false,
-        "group": "",
-        "name": [
-            "Artur",
-            "Arakelov"
-        ],
-        "nick": "Artur"
+        "nick": "jnk"
     }
 }
