@@ -1,48 +1,54 @@
 import json
 
-# open json users list
-# with open("users.json", "r") as f:
-#     userslist = json.load(f)
+"""
 
-class list:
-    userlist = {}
+open json users list
+with open("users.json", "r") as f:
+userslist = json.load(f)
 
-def updateList():
-    try:
-        with open("users.json", "r") as f:
-            list.userlist = json.load(f)
-    except json.decoder.JSONDecodeError:
-        print('JSON IS BROKEN')
+"""
 
 
-def usersList():
-    return list.userlist
+class DataBase:
 
-def dumbList():
-    userslist_update_str = json.dumps(list.userlist, sort_keys=True, indent=4)
-    print('\n\n', userslist_update_str, '\n\n\n\n')
-    with open('users.json', 'w') as f:
-        f.write(userslist_update_str)
+    def __init__(self):
+        self.userlist = {}
 
-def add2List(id, userData):
-    if str(id) in list.userlist:
-        del list.userlist[str(id)]
-    list.userlist[str(id)] = userData
-    dumbList()
-    updateList()
+    def updateList(self):
+        try:
+            with open("users.json", "r") as f:
+                self.userlist = json.load(f)
+        except json.decoder.JSONDecodeError:
+            print('JSON IS BROKEN')
 
-def getUserData(id):
-    if str(id) in list.userlist:
-        return list.userlist[str(id)]
-    return False
+    def usersList(self):
+        return self.userlist
 
-def findIdByName(name):
-    for id in list.userlist:
-        print('\n', list.userlist[id], '\n')
-        if list.userlist[id]['name'][0].lower() == name or list.userlist[id]['nick'].lower() == name:
-            return id
+    def dumbList(self):
+        userslist_update_str = json.dumps(self.userlist, sort_keys=True, indent=4)
+        print('\n\n', userslist_update_str, '\n\n\n\n')
+        with open('users.json', 'w') as f:
+            f.write(userslist_update_str)
 
-    # name = transliterate.translit(name, 'ru', reversed=True)
-    # print(name)
+    def add2List(self, id, userData):
+        if str(id) in self.userlist:
+            del self.userlist[str(id)]
+        self.userlist[str(id)] = userData
+        self.dumbList()
+        self.updateList()
 
-    return False
+    def getUserData(self, id):
+        if str(id) in self.userlist:
+            return self.userlist[str(id)]
+        return False
+
+    def findIdByName(self, name):
+        for id in self.userlist:
+            print('\n', self.userlist[id], '\n')
+            if self.userlist[id]['name'][0].lower() == name or self.userlist[id]['nick'].lower() == name:
+                return id
+
+        # name = transliterate.translit(name, 'ru', reversed=True)
+        # print(name)
+
+        return False
