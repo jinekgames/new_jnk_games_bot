@@ -1,4 +1,3 @@
-from os import startfile
 import random
 import time
 random.seed(version=2)
@@ -11,7 +10,6 @@ from vk_api.utils import get_random_id
 import datetime
 import calendar
 
-from scedullar import mmm19_scedullar
 import users_db
 
 from scedullar import weekday_ru_en
@@ -117,12 +115,12 @@ def sendMsg2id(vksession, id, msg):
         SomeVars.timers[id] = cur_time
         rtrn_msg = ''
         try:
-            print(vksession.method('messages.send',
+            vksession.method('messages.send',
                     {
                         'user_id': id,
                         'message': msg,
                         'random_id': get_random_id(),
-                    }))
+                    })
             rtrn_msg = 'готово, с вас three hundred bucks'
         except vk_api.exceptions.ApiError:
             rtrn_msg = 'сначала заставь его чтото написать боту хоть раз, чтобы бот смог отправить ему сообщение'
@@ -260,8 +258,6 @@ def msgProc(id, msg, vksession, myapi, upload):
                     'photo{}_{}'.format(photo['owner_id'], photo['id'])
                 )
 
-                print(text)
-
                 vksession.method('messages.send',
                     {
                         'user_id': id,
@@ -296,12 +292,11 @@ def msgProc(id, msg, vksession, myapi, upload):
             new_nick = msg.split(' ')[2]
             userData['nick'] = new_nick
             users_db.add2List(id, userData)
-            print(userData)
             return 'изи'
 
 
 
-                # SHARAGA
+        # SHARAGA
             
         elif msg == 'пн' or msg == 'понедельник':
             with open("scedullar.json", "r") as f:

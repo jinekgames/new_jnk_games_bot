@@ -1,5 +1,4 @@
 import json
-import transliterate
 
 # open json users list
 # with open("users.json", "r") as f:
@@ -43,7 +42,7 @@ def findIdByName(name):
         if list.userlist[id]['name'][0].lower() == name or list.userlist[id]['nick'].lower() == name:
             return id
 
-    name = transliterate.translit(name, 'ru', reversed=True)
-    print(name)
+    # name = transliterate.translit(name, 'ru', reversed=True)
+    # print(name)
 
     return False
