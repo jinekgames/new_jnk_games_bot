@@ -16,10 +16,9 @@ import users_db
 
 # for exception codes
 # import socket, urllib3, requests
-
-
+ass = users_db.DataBase()
 # getting api for connecting to my community
-session = vk_api.VkApi(token = group_token)
+session = vk_api.VkApi(token=group_token)
 api = session.get_api()
 longpoll = VkLongPoll(session)
 upload = VkUpload(session)
@@ -30,19 +29,26 @@ myapi = mysession.get_api()
 
 
 # send message to id
-def sendMsg(id, msg, attachments = ''):
-    session.method('messages.send', { 'user_id': id, 'message': msg, 'random_id': 0, 'attachment': ','.join(attachments) })
+def sendMsg(id, msg, attachments=''):
+    session.method(
+        'messages.send',
+        {'user_id': id,
+         'message': msg,
+         'random_id': 0,
+         'attachment': ','.join(attachments)}
+    )
 
 
 
 # start console message
-print('\n\n\nBot has been strted. Messages log:\n\n')
+print(
+    '\n\n\nBot has been started. Messages log:\n\n'
+    )
 
 
 # db dumb timer
 db_dubm_time = time.time()
-# log onto db
-users_db.updateList()
+ass.updateList()
 
 
 flag_run = True
@@ -52,8 +58,6 @@ while flag_run:
 
 
     # проверка вк на пидора
-    try:
-
         # main loop
         for event in longpoll.listen():
 
@@ -67,7 +71,7 @@ while flag_run:
                     
 
                     # search user in json
-                    userData = users_db.getUserData(id)
+                    userData = ass.getUserData(id)
                     if not userData:
                         print('NEW USER\n')
                         # get sender name by id
@@ -81,8 +85,10 @@ while flag_run:
                             'nick': name[0]
                         }
                         # save data in db
-                        users_db.add2List(id, userData)
-                        users_db.dumbList()
+                        ass.add2List(id, userData)
+                        ass.dumbList()
+
+
 
 
                     # processing the message
@@ -94,7 +100,7 @@ while flag_run:
                     if msg == 'стоп':
                         if userData['admin']:
                             sendMsg(id, 'ok')
-                            users_db.dumbList()
+                            ass.dumbList()
                             flag_run = False
                             break
                         else:
@@ -139,18 +145,3 @@ while flag_run:
 
 
             time.sleep(sleep_timeout)
-
-
-    # if vk is gay then restart connection
-    # errrs: socket.timeout, urllib3.exceptions.ReadTimeoutError, requests.exceptions.ReadTimeout
-    except BaseException:   # vashe poxui
-
-        # getting api for connecting to my community
-        session = vk_api.VkApi(token = group_token)
-        api = session.get_api()
-        longpoll = VkLongPoll(session)
-        upload = VkUpload(session)
-
-        # session of mine to post in the wall
-        mysession = vk_api.VkApi(token=admin_token)
-        myapi = mysession.get_api()
