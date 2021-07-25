@@ -131,7 +131,7 @@ def sendMsg2id(vksession, id, msg):
 
 
 # return reply for user accornding to message
-def msgProc(id, msg, vksession, myapi, upload):
+def msgProc(id, msg, vksession, upload):
 
     if msg != '':
 
@@ -181,8 +181,11 @@ def msgProc(id, msg, vksession, myapi, upload):
             if contain5(msg, [ 'данила', 'донила', 'даниила' ]):
                 return sendMsg2id(vksession, 187191431, userData['firstname'] + ' поздравил тебя с др')
                 """
+                # vkBotSession of mine to post in the wall
+                vkMySession = vk_api.VkApi(token=admin_token)
+                vkMyApi = vkMySession.get_api()
                 # это типа раньше он еще пост на стене дропал (чисток акпример тут пока будет)
-                myapi.wall.post(
+                vkMyApi.wall.post(
                     owner_id = '-205950303',       # my id 190344587 community 205950303
                     from_group = 1,
                     message = 'ебать Данил с др нахуй\nОт: ' + userData['firstname'])
