@@ -1,78 +1,64 @@
+from users_db import usersDataBase                      # importing users database module
+from replies import msgProc                             # importing message pricessing function
+from vars import group_token, debug, sleep_timeout, admin_token     # importing variables of bot init
+import time
 import vk_api
 from vk_api import VkUpload
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.utils import get_random_id
-
-import time
-
-# importing variables of bot init
-from vars import group_token, debug, sleep_timeout, admin_token
-
-# importing message pricessing function
-from replies import msgProc
-
-# importing users database module
-import users_db
-
-# for exception codes
-# import socket, urllib3, requests
+# import socket, urllib3, requests                      # for exception codes
 
 
-# getting api for connecting to my community
-session = vk_api.VkApi(token = group_token)
-api = session.get_api()
-longpoll = VkLongPoll(session)
-upload = VkUpload(session)
-
-# session of mine to post in the wall
-mysession = vk_api.VkApi(token=admin_token)
-myapi = mysession.get_api()
-
-
+# vk_api variable
+vkBotSession = vk_api.VkApi(token=group_token)
 # send message to id
 def sendMsg(id, msg, attachments = ''):
-    session.method('messages.send', { 'user_id': id, 'message': msg, 'random_id': 0, 'attachment': ','.join(attachments) })
+    vkBotSession.method('messages.send', { 'user_id': id, 'message': msg, 'random_id': 0, 'attachment': ','.join(attachments) })
 
 
+def main():
 
-# start console message
-print('\n\n\nBot has been strted. Messages log:\n\n')
+    # log onto db
+    usersDataBase.updateList()
 
+    # bot is running flag
+    isBotRunning = True
 
-# db dumb timer
-db_dubm_time = time.time()
-# log onto db
-users_db.updateList()
+    while isBotRunning:
 
+        # get api for connecting to my community
+        vkBotSession = vk_api.VkApi(token=group_token)
+        vkBotApi = vkBotSession.get_api()
+        vkLongpoll = VkLongPoll(vkBotSession)
+        vkUpload = VkUpload(vkBotSession)
 
-flag_run = True
+        # vkBotSession of mine to post in the wall
+        vkMySession = vk_api.VkApi(token=admin_token)
+        vkMyApi = vkMySession.get_api()
 
+        # start console message
+        print('\n\n\nBot has been strted. Messages log:\n\n')
 
-while flag_run:
+        # catch vk session errors
+        #try:
 
+            # main loop
+        for event in vkLongpoll.listen():
 
-    # проверка вк на пидора
-    try:
-
-        # main loop
-        for event in longpoll.listen():
-
-            if event.type == VkEventType.MESSAGE_NEW:
-
-                if event.to_me:
+            if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                     
                     # get and convert message to lower case
-                    msg = event.text.lower()
-                    id = event.user_id
+                    userMsg = event.text.lower()
+                    userVkId = event.user_id
                     
-
-                    # search user in json
-                    userData = users_db.getUserData(id)
+                    # search user in database
+                    userData = usersDataBase.getUserData(userVkId)
+                    # create new user if his data doesnt exist
                     if not userData:
                         print('NEW USER\n')
-                        # get sender name by id
-                        response = api.users.get(user_ids = id)
-                        name = [ str(response[0]['first_name']), str(response[0]['last_name']) ]
+                        # get user name by vk id
+                        response = vkBotApi.users.get(user_ids=userVkId)
+                        name = [str(response[0]['first_name']), str(response[0]['last_name'])]
                         # save user data
                         userData = {
                             'name': name,
@@ -81,76 +67,62 @@ while flag_run:
                             'nick': name[0]
                         }
                         # save data in db
-                        users_db.add2List(id, userData)
-                        users_db.dumbList()
+                        usersDataBase.add2List(userVkId, userData)
+                        usersDataBase.dumbList()
 
-
-                    # processing the message
-                    print(userData['name'][0], userData['name'][1], 'id=' + str(id))
+                    # console log message
+                    print(userData['firstname'], userData['secondname'], 'id=' + str(userVkId))
                     print(time.ctime())
-                    print(msg)
+                    print(userMsg)
 
-                    # turning bot off condition
-                    if msg == 'стоп':
+                    # turning bot off condition (admins only)
+                    if userMsg == 'стоп':
                         if userData['admin']:
-                            sendMsg(id, 'ok')
-                            users_db.dumbList()
-                            flag_run = False
+                            sendMsg(userVkId, 'ok')
+                            isBotRunning = False
                             break
                         else:
+                            # send message to non admin user tryna stop da bot
                             attachments = []
                             attachments.append( 'photo-205950303_457239039' )
-                            session.method('messages.send',
+                            vkBotSession.method('messages.send',
                                 {
-                                    'user_id': id,
-                                    'message': 'ты не админ',
+                                    'user_id': userVkId,
+                                    'message': 'ты не админ, соси',
                                     'random_id': get_random_id(),
                                     'attachment': ','.join(attachments)
                                 })
-                            # image photo190344587_457278276
 
-                    # get answer
-
+                    # get reply message
                     if debug:
-
-                        reply = msgProc(id, msg, session, myapi, upload)
-                    
+                        botReply = msgProc(userVkId, userMsg, vkBotSession, vkMyApi, vkUpload)
                     else:
-                
+                        # catch msg processing error
                         try:
-                            reply = msgProc(id, msg, session, myapi, upload)
+                            botReply = msgProc(userVkId, userMsg, vkBotSession, vkMyApi, vkUpload)
                         except BaseException:
-                            reply = 'ты блять его убил нахуй\nты его захуярил'
+                            botReply = 'ты блять его убил нахуй\nты его захуярил'
                             file = open('error_msgs.txt','a', encoding='utf-8')
-                            file.write('///   NEW ERROR   ///\nMSG: "' + msg + '"\nTIME: ' + time.ctime() + '\n\n\n')
+                            file.write('///   NEW ERROR   ///\nMSG: "' + userMsg + '"\nTIME: ' + time.ctime() + '\n\n\n')
                             file.close()
 
-                    # send it
-                    if reply:
-                        sendMsg(id, reply)
+                    # send reply to user
+                    if botReply:
+                        sendMsg(userVkId, botReply)
                         print('\nAnswered')
 
                     print('\n\n')
 
-
-            # if (time.time() - db_dubm_time > 1800):
-            #     users_db.dumbList()
-            #     db_dubm_time = time.time()
-
-
+            # bot should sleep 4 better performance such as u
             time.sleep(sleep_timeout)
 
 
-    # if vk is gay then restart connection
-    # errrs: socket.timeout, urllib3.exceptions.ReadTimeoutError, requests.exceptions.ReadTimeout
-    except BaseException:   # vashe poxui
+        # if vk is gay then restart connection
+        # errrs: socket.timeout, urllib3.exceptions.ReadTimeoutError, requests.exceptions.ReadTimeout
+        #except BaseException:   # vashe poxui
+        #   True
 
-        # getting api for connecting to my community
-        session = vk_api.VkApi(token = group_token)
-        api = session.get_api()
-        longpoll = VkLongPoll(session)
-        upload = VkUpload(session)
 
-        # session of mine to post in the wall
-        mysession = vk_api.VkApi(token=admin_token)
-        myapi = mysession.get_api()
+# running script
+if __name__ == "__main__":
+	main()
