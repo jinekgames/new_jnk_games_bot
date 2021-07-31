@@ -19,7 +19,8 @@ class UsersDataBase:
 
     def dumbList(self):
         userslist_update_str = json.dumps(self.userlist, sort_keys=True, indent=4)
-        print('\n\n', userslist_update_str, '\n\n\n\n')
+        print('\n\nDB JUST BEEN UPDATED\n')
+        #print('\n\n---NEW DB STATE---\n\n', userslist_update_str, '\n\n\n\n')
         with open('users.json', 'w') as f:
             f.write(userslist_update_str)
 
@@ -27,8 +28,6 @@ class UsersDataBase:
         if str(id) in self.userlist:
             del self.userlist[str(id)]
         self.userlist[str(id)] = userData
-        self.dumbList()
-        self.updateList()
 
     def getUserData(self, id):
         if str(id) in self.userlist:
@@ -41,12 +40,15 @@ class UsersDataBase:
                 return id
         return False
 
-        
     def findIdByField(self, key, value):
         for id in self.userlist:
             if self.userlist[id][key].lower() == value:
                 return id
         return False
+
+    def forceUpdate(self):
+        self.dumbList()
+        self.updateList()
 
 
 usersDataBase = UsersDataBase()

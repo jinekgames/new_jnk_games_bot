@@ -1,6 +1,6 @@
 from users_db import usersDataBase
+from str_module import contain5, end5, i5, choo5e, endswith_list, _contain5, _end5, replace_layout
 import help_msgs
-import random
 import time
 import requests
 import json
@@ -11,7 +11,6 @@ import vk_api
 from vk_api.utils import get_random_id
 
 
-random.seed(version=2)
 requestSession = requests.Session()
 
 
@@ -21,95 +20,6 @@ class SomeVars:
     timeoutSec = 60
 
 
-# check if txt does contain str
-def _contain5(text, str):
-
-    iter_txt = 0
-    iter_txt_new = 0
-    iter_str = 0
-
-    len_txt = len(text)
-    len_str = len(str)
-
-    for iter_txt in range(len_txt):
-
-        iter_txt_new = iter_txt
-        iter_str = 0
-
-        while iter_txt_new < len_txt and iter_str < len_str and text[iter_txt_new] == str[iter_str]:
-            iter_txt_new += 1
-            iter_str += 1
-
-        if iter_str == len_str:
-            return True
-
-    return False
-
-# check if text contains any of list strs
-def contain5(text, list):
-    for str in list:
-        if _contain5(text, str):
-            return True
-    return False
-
-# check if text ends with str
-def _end5(text, str):
-
-    iter_str = len(str) - 1
-    iter_txt = len(text) - 1
-
-    while iter_str >= 0 and iter_txt >=0:
-        if text[iter_txt] != str[iter_str]:
-            return False
-        iter_str -= 1
-        iter_txt -= 1
-    
-    return True
-
-# check if text ends with any of list strs    
-def end5(text, list):
-    for str in list:
-        if _end5(text, str):
-            return True
-    return False
-
-# check if text is str
-def _i5(text, str):
-    
-    iter_str = 0
-    len_str = len(str)
-
-    for ch in text:
-        if ch != str[iter_str]:
-            return False
-        iter_str += 1
-        if iter_str == len_str:
-            return True
-
-    if iter_str != len_str:
-        return False
-    
-    return True
-
-# check if text is any of list strs    
-def i5(text, list):
-    for str in list:
-        if _i5(text, str):
-            return True
-    return False
-
-# choose answer from the list
-def choo5e(list):
-    return list[random.randint( 0, len(list)-1 )]
-
-# check if text ends with any of list strs    
-def endswith_list(text, list):
-    for str in list:
-        if text.endswith(str):
-            return True
-    return False
-
-# send vk message to id
 def sendMsg2id(vksession, id, msg):
     cur_time = time.time()
     if (not id in SomeVars.timers) or (cur_time - SomeVars.timers[id] > SomeVars.timeoutSec):
@@ -144,40 +54,7 @@ def msgProc(id, msg, vksession, upload):
 
         # HUINYA
 
-        if msg.startswith('makeadmin'):
-            if not usersDataBase.getUserData(id)['admin']:
-                return 'назначать админов могут толкьо админы'
-
-            distId = msg.split(' ')
-            if len(distId) != 2:
-                return 'incorrect sintaxys'
-            distId = distId[1]
-            userData_ = usersDataBase.getUserData(distId)
-            if not userData_:
-                return 'user not found'
-            userData_['admin'] = True
-            usersDataBase.add2List(distId, userData_)
-            usersDataBase.dumbList()
-            return 'done'
-
-        elif msg.startswith('makenotadmin'):
-            if not usersDataBase.getUserData(id)['admin']:
-                return 'убирать админов могут только админы'
-
-            distId = msg.split(' ')
-            if len(distId) != 2:
-                return 'incorrect sintaxys'
-            distId = distId[1]
-            userData_ = usersDataBase.getUserData(distId)
-            if not userData_:
-                return 'user not found'
-            userData_['admin'] = False
-            usersDataBase.add2List(distId, userData_)
-            usersDataBase.dumbList()
-            return 'done'
-
-
-        elif contain5(msg, [ 'поздравить', 'подравляю', 'поздравляю', 'с др' ]):
+        if contain5(msg, [ 'поздравить', 'подравляю', 'поздравляю', 'с др' ]):
             if contain5(msg, [ 'данила', 'донила', 'даниила' ]):
                 return sendMsg2id(vksession, 187191431, userData['firstname'] + ' поздравил тебя с др')
                 """
@@ -284,6 +161,11 @@ def msgProc(id, msg, vksession, upload):
             else:
                 return help_msgs.nonadmin_msg
 
+        elif msg.startswith('переведи'):
+            if msg[8] != '\n' and msg[9] != '\n':
+                return 'неправильная команда (сообщение надо писать с новой строки)'
+            return replace_layout(msg[9:])
+
         
 
         # USER DATA FUNCTIONS
@@ -291,8 +173,43 @@ def msgProc(id, msg, vksession, upload):
         elif msg.startswith('сменить ник'):
             new_nick = msg.split(' ')[2]
             userData['nick'] = new_nick
-            usersDataBase.add2List(id, userData)
             return 'изи'
+
+        elif msg.startswith('makeadmin'):
+            if not usersDataBase.getUserData(id)['admin']:
+                return 'назначать админов могут толкьо админы'
+
+            distId = msg.split(' ')
+            if len(distId) != 2:
+                return 'incorrect sintaxys'
+            distId = distId[1]
+            userData_ = usersDataBase.getUserData(distId)
+            if not userData_:
+                return 'user not found'
+            userData_['admin'] = True
+            return 'done'
+
+        elif msg.startswith('makenotadmin'):
+            if not usersDataBase.getUserData(id)['admin']:
+                return 'убирать админов могут только админы'
+
+            distId = msg.split(' ')
+            if len(distId) != 2:
+                return 'incorrect sintaxys'
+            distId = distId[1]
+            userData_ = usersDataBase.getUserData(distId)
+            if not userData_:
+                return 'user not found'
+            userData_['admin'] = False
+            return 'done'
+
+        elif msg == 'update db':
+            if not usersDataBase.getUserData(id)['admin']:
+                return 'действие доступно только админам'
+            usersDataBase.forceUpdate()
+            return 'updated'
+
+
 
 
 
@@ -312,7 +229,6 @@ def msgProc(id, msg, vksession, upload):
                 return 'такой группы еще нет в боте, попроси @eugene_programmist добавить твою группу'
             userData['group'] = group
             userData['admin'] = False
-            usersDataBase.add2List(id, userData)
             return 'я запомнил, ты из группы ' + group + '\nтеперь можешь смотреть свое расписание (чекай help) или попроси у @eugene_programmist админку и сможешь его редактировать (!!!при смене группы админка теряется!!!)'
             
         elif msg == 'пн' or msg == 'понедельник':
@@ -449,6 +365,9 @@ def msgProc(id, msg, vksession, upload):
 
         elif contain5(msg, ['как меня зовут']):
             return userData['firstname'] + ' ' + userData['secondname'] + '\nAKA: ' + userData['nick']
+
+        elif msg == 'моя статка':
+            return 'ты отправил боту ' + str(userData['msgCount']) + ' сообщений(е)'
 
         elif msg.startswith('кто ты'):
             return choo5e([ 'да', 'тебя это ебать не должно', 'я?', 'я бот ашо', 'не важно кто, важно кто' ])
