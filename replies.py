@@ -1,11 +1,15 @@
 from users_db import usersDataBase
 from str_module import contain5, end5, i5, choo5e, endswith_list, _contain5, _end5, replace_layout
+from vars import public_email_pswrd
 import help_msgs
 import time
 import requests
 import json
 import datetime
 import calendar
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from scedullar import weekday_ru_en
 import vk_api
 from vk_api.utils import get_random_id
@@ -40,6 +44,24 @@ def sendMsg2id(vksession, id, msg):
         return 'этому челу уже писали за последние 2 минуты'
 
 
+def sendEmail2Admin(senderid, text):
+    FROM  = "jnkgms.adm1n@gmail.com"
+    TO    = "jnkgms.adm1n@gmail.com"
+    PSWRD = public_email_pswrd
+
+    msg = MIMEMultipart()
+    msg['From']    = FROM
+    msg['To']      = TO
+    msg['Subject'] = 'BOT MESSAGE'
+    body = 'From vk.com/id' + str(senderid) + '\n\nMessage:\n' + text
+    msg.attach(MIMEText(body, 'plain'))
+
+    smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
+    smtpObj.starttls()
+    smtpObj.login(FROM, PSWRD)
+    smtpObj.send_message(msg)
+
+
 # return reply for user accornding to message
 def msgProc(id, msg, vksession, upload):
 
@@ -52,6 +74,12 @@ def msgProc(id, msg, vksession, upload):
 
 
 
+        if 'ban' in userData:
+            if (time.time() - userData['ban']['start']) < (userData['ban']['time'] * 3600):
+                return 'у тебя бан (соси)'
+
+        
+        
         # HUINYA
 
         if contain5(msg, [ 'поздравить', 'подравляю', 'поздравляю', 'с др' ]):
@@ -105,6 +133,12 @@ def msgProc(id, msg, vksession, upload):
             else:
                 text = userData['firstname'] + ' оставил тебе сообщение:\n' + msg_split[1]
             return sendMsg2id(vksession, distId, text)
+
+        elif msg.startswith('заспамить админа'):
+            if msg[16] != '\n' and msg[17] != '\n':
+                return 'неправильная команда (сообщение надо писать с новой строки)'
+            sendEmail2Admin(id, msg[16:])
+            return 'ваши замечания приняты, возможно, их прочитают'
 
         elif msg.startswith('поиск'):
 
@@ -166,6 +200,10 @@ def msgProc(id, msg, vksession, upload):
                 return 'неправильная команда (сообщение надо писать с новой строки)'
             return replace_layout(msg[9:])
 
+        elif i5(msg, ['анекдот', 'шутка', 'разрывная']):
+            with open('additional_data/jokes.json', 'r', encoding='utf-8') as f:
+                return choo5e(json.load(f)['list'])
+
         
 
         # USER DATA FUNCTIONS
@@ -203,6 +241,39 @@ def msgProc(id, msg, vksession, upload):
             userData_['admin'] = False
             return 'done'
 
+        elif msg.startswith('ban'):
+            if not usersDataBase.getUserData(id)['admin']:
+                return 'банить могут только админы'
+
+            comands = msg.split(' ')
+            if len(comands) != 3:
+                return 'incorrect sintaxys'
+            if not comands[2].isdigit():
+                return 'incorrect sintaxys'
+            userData_ = usersDataBase.getUserData(comands[1])
+            if not userData_:
+                return 'user not found'
+            userData_['ban'] = {
+                'start': time.time(),
+                'time': int(comands[2])
+            }
+            userData_['admin'] = False
+            return 'done'
+
+        elif msg.startswith('unban'):
+            if not usersDataBase.getUserData(id)['admin']:
+                return 'разбанить могут только админы'
+
+            distId = msg.split(' ')
+            if len(distId) != 2:
+                return 'incorrect sintaxys'
+            distId = distId[1]
+            userData_ = usersDataBase.getUserData(distId)
+            if not userData_:
+                return 'user not found'
+            userData_['ban']['time'] = 0
+            return 'done'
+
         elif msg == 'update db':
             if not usersDataBase.getUserData(id)['admin']:
                 return 'действие доступно только админам'
@@ -223,7 +294,7 @@ def msgProc(id, msg, vksession, upload):
             group = group[1]
             if not group.isdigit():
                 return 'нужно написать номер группы (только цифры (тире тоже не надо, хотя откуда у тебя тире, ты шо, не из ммм, ты как меня нашел))'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             if not group in scedullar:
                 return 'такой группы еще нет в боте, попроси @eugene_programmist добавить твою группу'
@@ -234,50 +305,50 @@ def msgProc(id, msg, vksession, upload):
         elif msg == 'пн' or msg == 'понедельник':
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             return scedullar[userData['group']]['Monday']
         elif msg == 'вт' or msg == 'вторник':
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             return scedullar[userData['group']]['Tuesday']
         elif msg == 'ср' or msg == 'среда':
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             return scedullar[userData['group']]['Wednesday']
         elif msg == 'чт'or msg == 'четверг':
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             return scedullar[userData['group']]['Thursday']
         elif msg == 'пт' or msg == 'пятница':
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             return scedullar[userData['group']]['Friday']
         elif msg == 'сб' or msg == 'суббота':
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             return scedullar[userData['group']]['Saturday']
         elif msg == 'вс' or msg == 'воскресенье':
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             return scedullar[userData['group']]['Sunday']
 
         elif msg == 'сегодня':
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             return scedullar[userData['group']][calendar.day_name[datetime.datetime.today().weekday()]]
         elif msg == 'завтра':
@@ -285,14 +356,14 @@ def msgProc(id, msg, vksession, upload):
                 return 'сначала укажи свою группу (чекай команду help)'
             today = datetime.date.today()
             tomorrow = datetime.date(today.year, today.month, today.day+1)
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             return scedullar[userData['group']][calendar.day_name[tomorrow.weekday()]]
 
         elif msg == 'неделя':
             if userData[userData['group']]['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             text = ''
             text += 'ПОНЕДЕЛЬНИК\n\n' + scedullar['Monday'] + '\n=========================\n\n'
@@ -327,7 +398,7 @@ def msgProc(id, msg, vksession, upload):
                     return 'неправильная команда'
                 new_text = msg[ start_pointer+1 : len(msg) ]
 
-                with open("scedullar.json", "r") as f:
+                with open('scedullar.json', 'r', encoding='utf-8') as f:
                     scedullar = json.load(f)
                 del scedullar[userData['group']][weekday]
                 scedullar[userData['group']][weekday] = new_text
@@ -351,7 +422,7 @@ def msgProc(id, msg, vksession, upload):
             group = group[1]
             if not group.isdigit():
                 return 'нужно написать номер группы (только цифры (тире тоже не надо, хотя откуда у тебя тире, ты шо, не из ммм, ты как меня нашел))'
-            with open("scedullar.json", "r") as f:
+            with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
             scedullar[group] = scedullar['template']
             scedullar_update_str = json.dumps(scedullar, sort_keys=True, indent=4)
@@ -363,11 +434,16 @@ def msgProc(id, msg, vksession, upload):
 
         # BASE ANSWERS
 
-        elif contain5(msg, ['как меня зовут']):
-            return userData['firstname'] + ' ' + userData['secondname'] + '\nAKA: ' + userData['nick']
-
-        elif msg == 'моя статка':
-            return 'ты отправил боту ' + str(userData['msgCount']) + ' сообщений(е)'
+        elif contain5(msg, ['мои данные']):
+            text = userData['firstname'] + ' ' + userData['secondname'] + '\nAKA: ' + userData['nick'] + \
+                '\nты отправил боту ' + str(userData['msgCount']) + ' сообщений(е)'
+            if len(userData['group']) > 0:
+                text += '\nтвоя группа: ' + userData['group']
+            if userData['admin']:
+                text += '\nправа админа: ' + str(userData['admin'])
+            if 'ban' in userData:
+                text += '\nбыл бан'
+            return text
 
         elif msg.startswith('кто ты'):
             return choo5e([ 'да', 'тебя это ебать не должно', 'я?', 'я бот ашо', 'не важно кто, важно кто' ])
@@ -448,3 +524,17 @@ def msgProc(id, msg, vksession, upload):
             return 'кто я?'
         elif _contain5(msg, 'кто я'):
             return 'смотря кто спрашивает'
+
+
+
+        # GIVEAWAY CHEATS
+
+        elif msg == 'буст сообщений':
+            userData['ban'] = {
+                'start': time.time(),
+                'time': 10
+            }
+            return 'бан нахуй\nза читы'
+        elif msg == 'буст сооьщений':
+            return 'число ваших сообщений было увеличено на 1'
+

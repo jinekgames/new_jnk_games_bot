@@ -9,7 +9,7 @@ class UsersDataBase:
 
     def updateList(self):
         try:
-            with open("users.json", "r") as f:
+            with open('users.json', 'r', encoding='utf-8') as f:
                 self.userlist = json.load(f)
         except json.decoder.JSONDecodeError:
             print('JSON IS BROKEN')
@@ -18,7 +18,7 @@ class UsersDataBase:
         return self.userlist
 
     def dumbList(self):
-        userslist_update_str = json.dumps(self.userlist, sort_keys=True, indent=4)
+        userslist_update_str = json.dumps(self.userlist, sort_keys=False, indent=4, ensure_ascii=True, separators=(',', ': '))
         print('\n\nDB JUST BEEN UPDATED\n')
         #print('\n\n---NEW DB STATE---\n\n', userslist_update_str, '\n\n\n\n')
         with open('users.json', 'w') as f:
