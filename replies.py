@@ -203,7 +203,10 @@ def msgProc(id, msg, vksession, upload):
         elif i5(msg, ['анекдот', 'шутка', 'разрывная']):
             with open('additional_data/jokes.json', 'r', encoding='utf-8') as f:
                 return choo5e(json.load(f)['list'])
-
+                
+        elif msg == 'гачи топ':
+            with open('additional_data/gachi.json', 'r', encoding='utf-8') as f:
+                return choo5e(json.load(f)['list'])
         
 
         # USER DATA FUNCTIONS
