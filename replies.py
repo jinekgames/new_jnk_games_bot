@@ -1,13 +1,15 @@
 from users_db import usersDataBase
 from str_module import contain5, end5, i5, choo5e, endswith_list, _contain5, _end5, replace_layout
 from vars import public_email_pswrd
-import help_msgs
+from  help_msgs import constructHelpMsg
 import time
 import requests
 import json
 import datetime
 import calendar
 import smtplib
+import random
+random.seed(version=2)
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from scedullar import weekday_ru_en
@@ -73,10 +75,11 @@ def msgProc(id, msg, vksession, upload):
             return 'возникла ошибка при поиске вашей записи в базе данных, пожалуйста, сообщите админу\n@eugene_programmist'
 
 
-
+        if  userData['admin'] < 0:
+            return 'у тебя бан (навсегда)'
         if 'ban' in userData:
             if (time.time() - userData['ban']['start']) < (userData['ban']['time'] * 3600):
-                return 'у тебя бан (соси)'
+                return 'у тебя бан (соси)\nдо ' + time.ctime(userData['ban']['start']+userData['ban']['time'])
 
         
         
@@ -189,11 +192,8 @@ def msgProc(id, msg, vksession, upload):
             else:
                 return 'нихуя не нашлось'
 
-        elif msg == 'help' or msg == 'команды':
-            if userData['admin']:
-                return help_msgs.admin_msg
-            else:
-                return help_msgs.nonadmin_msg
+        elif msg == 'help' or msg == 'команды' or msg == 'командв':
+            return constructHelpMsg(userData['admin'])
 
         elif msg.startswith('переведи'):
             if msg[8] != '\n' and msg[9] != '\n':
@@ -207,7 +207,32 @@ def msgProc(id, msg, vksession, upload):
         elif msg == 'гачи топ':
             with open('additional_data/gachi.json', 'r', encoding='utf-8') as f:
                 return choo5e(json.load(f)['list'])
+
+        elif msg.startswith('вероятность'):
+            a = msg.find('что')
+            if a > 0:
+                return 'вероятность того, что' + msg[ a + 3 : ] + ' составляет ' + str(random.randint( 1, 99 )) + '%'
+            return 'вероятность того, что' + msg[ 11 : ] + ' составляет ' + str(random.randint( 1, 99 )) + '%'
         
+        elif msg.startswith('выбери'):
+            cases = msg.split('\n')
+            return cases[random.randint( 1, len(cases) - 1 )]
+
+        elif msg == 'список людей':
+            list = usersDataBase.getSortedList(['firstname', 'secondname', 'nick'], 'firstname')
+            msg = ''
+            for el in list:
+                msg += el['firstname'] + ' ' + el['secondname'] + ' aka: ' + el['nick'] + '\n'
+            return msg
+
+        elif msg == 'топ людей':
+            list = usersDataBase.getSortedList(['firstname', 'secondname', 'msgCount'], 'msgCount', True)
+            msg = 'топ 5 подпесчиков по количесву сообщений:\n\n'
+            for el in list[0:5]:
+                msg += str(el['msgCount']) + ':\n' + el['firstname'] + ' ' + el['secondname'][0] + '. @id' + str(el['id']) + '\n'
+            return msg
+
+
 
         # USER DATA FUNCTIONS
 
@@ -216,37 +241,31 @@ def msgProc(id, msg, vksession, upload):
             userData['nick'] = new_nick
             return 'изи'
 
-        elif msg.startswith('makeadmin'):
-            if not usersDataBase.getUserData(id)['admin']:
-                return 'назначать админов могут толкьо админы'
+        elif msg.startswith('setadmin'):
+            if usersDataBase.getUserData(id)['admin'] < 100:
+                return 'назначать админов могут толкьо админы лвлом не ниже 100'
 
-            distId = msg.split(' ')
-            if len(distId) != 2:
-                return 'incorrect sintaxys'
-            distId = distId[1]
-            userData_ = usersDataBase.getUserData(distId)
+            cmds = msg.split(' ')
+            if len(cmds) != 3:
+                return 'неверная команда, надо так \nmakeadmin 34019628 1'
+            if not cmds[2].isdigit():
+                return 'уровень доступа надо указать числом от -1 до 999'
+            lvl_ = int(cmds[2])
+            if lvl_ > userData['admin'] or lvl_ < 0:
+                return 'можно назначить толкьо на уровень не выше своего'
+            userData_ = usersDataBase.getUserData(cmds[1])
             if not userData_:
-                return 'user not found'
-            userData_['admin'] = True
-            return 'done'
-
-        elif msg.startswith('makenotadmin'):
-            if not usersDataBase.getUserData(id)['admin']:
-                return 'убирать админов могут только админы'
-
-            distId = msg.split(' ')
-            if len(distId) != 2:
-                return 'incorrect sintaxys'
-            distId = distId[1]
-            userData_ = usersDataBase.getUserData(distId)
-            if not userData_:
-                return 'user not found'
-            userData_['admin'] = False
+                return '404 user not found'
+            if userData_['admin'] < 0:
+                return 'из пермобана вернуть нельзя'
+            if userData_['admin'] > lvl_ and userData['admin'] < 101:
+                return 'занижать админку могут только админы начиная со 101 лвла'
+            userData_['admin'] = lvl_
             return 'done'
 
         elif msg.startswith('ban'):
-            if not usersDataBase.getUserData(id)['admin']:
-                return 'банить могут только админы'
+            if usersDataBase.getUserData(id)['admin'] < 100:
+                return 'банить могут только админы лвла не ниже 100'
 
             comands = msg.split(' ')
             if len(comands) != 3:
@@ -263,9 +282,26 @@ def msgProc(id, msg, vksession, upload):
             userData_['admin'] = False
             return 'done'
 
+        elif msg.startswith('permoban'):
+            if usersDataBase.getUserData(id)['admin'] < 300:
+                return '(с)перма банить могут только админы лвла не ниже 300'
+
+            comands = msg.split(' ')
+            if len(comands) != 2:
+                return 'incorrect sintaxys'
+            userData_ = usersDataBase.getUserData(comands[1])
+            if not userData_:
+                return 'user not found'
+            userData_['ban'] = {
+                'start': time.time(),
+                'time': -1
+            }
+            userData_['admin'] = -1
+            return 'done\nесли что его больше не вернуть (никак)'
+
         elif msg.startswith('unban'):
-            if not usersDataBase.getUserData(id)['admin']:
-                return 'разбанить могут только админы'
+            if usersDataBase.getUserData(id)['admin'] < 101:
+                return 'разбанить могут только админы лвла не ниже 101'
 
             distId = msg.split(' ')
             if len(distId) != 2:
@@ -278,8 +314,8 @@ def msgProc(id, msg, vksession, upload):
             return 'done'
 
         elif msg == 'update db':
-            if not usersDataBase.getUserData(id)['admin']:
-                return 'действие доступно только админам'
+            if usersDataBase.getUserData(id)['admin'] < 500:
+                return 'действие доступно только админам лвла не ниже 500'
             usersDataBase.forceUpdate()
             return 'updated'
 
@@ -302,8 +338,9 @@ def msgProc(id, msg, vksession, upload):
             if not group in scedullar:
                 return 'такой группы еще нет в боте, попроси @eugene_programmist добавить твою группу'
             userData['group'] = group
-            userData['admin'] = False
-            return 'я запомнил, ты из группы ' + group + '\nтеперь можешь смотреть свое расписание (чекай help) или попроси у @eugene_programmist админку и сможешь его редактировать (!!!при смене группы админка теряется!!!)'
+            if userData['admin'] < 30:
+                userData['admin'] = 9
+            return 'я запомнил, ты из группы ' + group + '\nтеперь можешь смотреть свое расписание (чекай help) или попроси у @eugene_programmist или другого админа ранга не ниже модера модерку и сможешь его редактировать (!!!при смене группы модерка теряется!!!)'
             
         elif msg == 'пн' or msg == 'понедельник':
             if userData['group'] == '':
@@ -383,8 +420,8 @@ def msgProc(id, msg, vksession, upload):
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
 
-            if not usersDataBase.getUserData(id)['admin']:
-                return 'менять расписание могут толкьо админы'
+            if usersDataBase.getUserData(id)['admin'] < 10:
+                return 'менять расписание могут только модеры'
 
             try:
 
@@ -416,8 +453,8 @@ def msgProc(id, msg, vksession, upload):
             return 'проверять будеш?'
 
         elif msg.startswith('creategroup'):
-            if not usersDataBase.getUserData(id)['admin']:
-                return 'создавать группы могут толкьо админы'
+            if usersDataBase.getUserData(id)['admin'] < 30:
+                return 'создавать группы могут только админы рангом не ниже 30'
             group = msg.split(' ')
             if len(group) != 2:
                 print(group)
@@ -427,6 +464,8 @@ def msgProc(id, msg, vksession, upload):
                 return 'нужно написать номер группы (только цифры (тире тоже не надо, хотя откуда у тебя тире, ты шо, не из ммм, ты как меня нашел))'
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
+            if group in scedullar:
+                return 'группа с таким ноером уже существует'
             scedullar[group] = scedullar['template']
             scedullar_update_str = json.dumps(scedullar, sort_keys=True, indent=4)
             with open('scedullar.json', 'w') as f:
@@ -445,7 +484,7 @@ def msgProc(id, msg, vksession, upload):
             if userData['admin']:
                 text += '\nправа админа: ' + str(userData['admin'])
             if 'ban' in userData:
-                text += '\nбыл бан'
+                text += '\nбыл бан ' + time.ctime(userData['ban']['start'])
             return text
 
         elif msg.startswith('кто ты'):
@@ -472,9 +511,18 @@ def msgProc(id, msg, vksession, upload):
         elif msg == 'чел' or ((msg.startswith('че') and msg.endswith('ел'))):
             return 'ты'
 
+        elif _contain5(msg, 'как') and _contain5(msg, 'дела'):
+            return choo5e(['нормально, братик, у тебя как?', 'все круто, как у тебя', 'да вот\nработаю\nаты?'])
+
+        elif msg.startswith('бот') or msg.endswith('бот'):
+            return 'да я бот иче'
+
+        elif msg.endswith('ты'):
+            return 'кто'
+
         elif msg.startswith('правильно'):
             return 'спасибо брат'
-        elif msg.startswith('спасибо' ):
+        elif msg.startswith('спасибо' ) or msg.endswith('спасибо'):
             return choo5e([ 'обращайся, братик', 'пожалуйста', 'чел ;3' ])
         elif msg.startswith('зачем'):
             return choo5e([ 'затем', 'так надо' ])
@@ -496,7 +544,7 @@ def msgProc(id, msg, vksession, upload):
 
         elif msg.startswith('пидора ответ'):
             return choo5e([ 'шлюхи аргумент' ])
-        elif contain5(msg, [ 'пидор' ]):
+        elif contain5(msg, [ 'пидор', 'пидр' ]):
             return choo5e([ 'сам пидор', 'пошел нахуй', 'gjitk yf[eq', 'sosi', 'ты че сука', 'а по ебалу??' ])
         elif contain5(msg, [ 'иди', 'пошел', 'пашел', 'пашол', 'пашол', 'пошол', 'пошёл', 'gjitk' ]) and contain5(msg, [ 'хуй', 'пизду', '[eq' ]):
             return choo5e([ 'сам иди', 'пошел нахуй', 'gjitk yf[eq', 'sosi', 'ты че сука', 'а может ты?' ])

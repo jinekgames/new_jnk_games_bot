@@ -50,5 +50,33 @@ class UsersDataBase:
         self.dumbList()
         self.updateList()
 
+    def getSortedList(self, keys, sortBy, reverse = False):
+        if not sortBy in keys:
+            return 'error blyat vy dolbaeb'
+        resList = []
+        for id in self.userlist:
+            listEl = {}
+            for key in keys:
+                listEl[key] = self.userlist[id][key]
+            listEl['id'] = id
+            resList.append(listEl)
+        resListLen = len(resList)
+        if reverse:
+            for i in range(resListLen):
+                for k in range(i):
+                    if resList[i][sortBy] > resList[k][sortBy]:
+                        tmp = resList[i]
+                        resList[i] = resList[k]
+                        resList[k] = tmp
+        else:
+            for i in range(resListLen):
+                for k in range(i):
+                    if resList[i][sortBy] < resList[k][sortBy]:
+                        tmp = resList[i]
+                        resList[i] = resList[k]
+                        resList[k] = tmp
+        return resList
+
+
 
 usersDataBase = UsersDataBase()

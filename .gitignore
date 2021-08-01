@@ -133,3 +133,4 @@ dmypy.json
 # my own
 test.py
 error_msgs.txt
+vars.py
