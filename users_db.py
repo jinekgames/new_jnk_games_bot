@@ -46,6 +46,21 @@ class UsersDataBase:
                 return id
         return False
 
+    def findIdByFieldS(self, keylist, valuelist):
+        len_key = len(keylist)
+        len_val = len(valuelist)
+        if len_key != len_val:
+            return 'error blyat vy dolbaeb'
+        for id in self.userlist:
+            i = 0
+            while i < len_key:
+                if self.userlist[id][keylist[i]].lower().replace('ё', 'е') != valuelist[i].replace('ё', 'е'):
+                    break
+                i += 1
+            if i == len_key:
+                return id
+        return False
+
     def forceUpdate(self):
         self.dumbList()
         self.updateList()
@@ -56,6 +71,13 @@ class UsersDataBase:
         resList = []
         for id in self.userlist:
             listEl = {}
+            flag = False
+            for key in keys:
+                if not key in self.userlist[id]:
+                    flag = True
+                    break
+            if flag:
+                continue
             for key in keys:
                 listEl[key] = self.userlist[id][key]
             listEl['id'] = id

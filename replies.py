@@ -1,6 +1,7 @@
+from os import truncate
 from users_db import usersDataBase
-from str_module import contain5, end5, i5, choo5e, endswith_list, _contain5, _end5, replace_layout
-from vars import public_email_pswrd
+from str_module import contain5, end5, i5, choo5e, endswith_list, _contain5, _end5, replace_layout, startswith_list, dicklist_search
+from vars import public_email_pswrd, admin_id
 from  help_msgs import constructHelpMsg
 import time
 import requests
@@ -23,28 +24,23 @@ requestSession = requests.Session()
 # some static variables
 class SomeVars:
     timers = {}
-    timeoutSec = 60
+    timeoutSec = 30
+    chats = {}
 
 
-def sendMsg2id(vksession, id, msg):
+def sendMsg2id(vksession, id, msg, attachments=[]):
     cur_time = time.time()
-    if (not id in SomeVars.timers) or (cur_time - SomeVars.timers[id] > SomeVars.timeoutSec):
+    if (not id in SomeVars.timers) or (cur_time - SomeVars.timers[id] > SomeVars.timeoutSec) or usersDataBase.getUserData(id)['admin'] > 500:
         SomeVars.timers[id] = cur_time
         rtrn_msg = ''
         try:
-            vksession.method('messages.send',
-                    {
-                        'user_id': id,
-                        'message': msg,
-                        'random_id': get_random_id(),
-                    })
+            vksession.get_api().messages.send(peer_id=id, message=msg, random_id=get_random_id(), attachment=attachments)
             rtrn_msg = 'готово, с вас three hundred bucks'
         except vk_api.exceptions.ApiError:
             rtrn_msg = 'сначала заставь его чтото написать боту хоть раз, чтобы бот смог отправить ему сообщение'
         return rtrn_msg
     else:
         return 'этому челу уже писали за последние 2 минуты'
-
 
 def sendEmail2Admin(senderid, text):
     FROM  = "jnkgms.adm1n@gmail.com"
@@ -63,9 +59,29 @@ def sendEmail2Admin(senderid, text):
     smtpObj.login(FROM, PSWRD)
     smtpObj.send_message(msg)
 
+def loadPhoto2Vk(url, upload):
+    image = requestSession.get(url, stream=True)
+    photo = upload.photo_messages(photos=image.raw)[0]
+    return 'photo{}_{}'.format(photo['owner_id'], photo['id'])
+
+def sendMsgWithPhoto(vksession, id, msg, url, upload):
+    attachments = []
+    attachments.append(loadPhoto2Vk(url, upload))
+    vksession.get_api().messages.send(peer_id=id, message=msg, random_id=get_random_id(), attachment=attachments)
+
+def sendAudio2id(vksession, peerId, trackOwnerId, trackId, msg=''):
+    attachments = []
+    attachments.append('audio{}_{}'.format(trackOwnerId, trackId))
+    vksession.get_api().messages.send(peer_id=peerId, message=msg, random_id=get_random_id(), attachment=attachments)
 
 # return reply for user accornding to message
-def msgProc(id, msg, vksession, upload):
+def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
+
+    inChat = False
+    if not peer_id:
+        peer_id = id
+    else:
+        inChat = True
 
     if msg != '':
 
@@ -76,9 +92,11 @@ def msgProc(id, msg, vksession, upload):
 
 
         if  userData['admin'] < 0:
+            sendMsgWithPhoto(vksession, id, '', 'https://sun9-58.userapi.com/impg/z_XjqSY_j1-YKatnrv3sjvGyUFc6MLd3TuOmig/yve7q3j0e8M.jpg?size=1080x791&quality=96&sign=287e6b6a0f789d3501f792ff5d66b8de&type=album', upload)
             return 'у тебя бан (навсегда)'
         if 'ban' in userData:
             if (time.time() - userData['ban']['start']) < (userData['ban']['time'] * 3600):
+                sendMsgWithPhoto(vksession, id, '', 'https://sun9-58.userapi.com/impg/z_XjqSY_j1-YKatnrv3sjvGyUFc6MLd3TuOmig/yve7q3j0e8M.jpg?size=1080x791&quality=96&sign=287e6b6a0f789d3501f792ff5d66b8de&type=album', upload)
                 return 'у тебя бан (соси)\nдо ' + time.ctime(userData['ban']['start']+userData['ban']['time'])
 
         
@@ -100,41 +118,84 @@ def msgProc(id, msg, vksession, upload):
                 """
 
         elif msg.startswith('послать'):
-            distId = msg.split(' ')[1]
-            if len(distId) != 9 or (not distId.isdigit()):
-                return 'введите корректный айди чела которого надо послать'
+            if usersDataBase.getUserData(id)['admin'] < 7:
+                return 'это действие могут выполнять только пользователи с уровнем не ниже 7'
+            com = msg.split(' ')
+            distId = com[1]
+            if distId.isdigit():
+                if len(distId) != 9:
+                    return 'введите корректный айди чела которого надо послать'
+                else:
+                    userData_ = usersDataBase.getUserData(distId)
+                    if userData_:
+                        if userData_['admin'] > userData['admin'] and userData['admin'] < 500:
+                            return 'сам пошел нахуй'
+                        if not 'naxui' in userData_:
+                            userData_['naxui'] = 1
+                        else:
+                            userData_['naxui'] += 1
+                        if not 'naxui_ur' in userData:
+                            userData['naxui_ur'] = 1
+                        else:
+                            userData['naxui_ur'] += 1
+                    return sendMsg2id(vksession, distId, 'ктото послал тебя нахуй')
             else:
-                if usersDataBase.getUserData(distId):
-                    if usersDataBase.getUserData(distId)['admin']:
+                if len(com) < 3:
+                    return 'надо указать и имя и фамилию прям как в вк'
+                distId = usersDataBase.findIdByFieldS(['firstname', 'secondname'], [com[1], com[2]])
+                if distId:
+                    userData_ = usersDataBase.getUserData(distId)
+                    if userData_['admin'] > userData['admin'] and userData['admin'] < 500:
                         return 'сам пошел нахуй'
-                return sendMsg2id(vksession, distId, 'ктото послал тебя нахуй')
+                    if not 'naxui' in userData_:
+                        userData_['naxui'] = 1
+                    else:
+                        userData_['naxui'] += 1
+                    if not 'naxui_ur' in userData:
+                        userData['naxui_ur'] = 1
+                    else:
+                        userData['naxui_ur'] += 1
+                    return sendMsg2id(vksession, distId, 'ктото послал тебя нахуй')
+                else:
+                    return 'я его(ее) не нашел'
+
+        elif msg.startswith('позвать бухать'):
+            if usersDataBase.getUserData(id)['admin'] < 6:
+                return 'это действие могут выполнять только пользователи с уровнем не ниже 6'
+            com = msg.split(' ')
+            distId = com[2]
+            if distId.isdigit():
+                if len(distId) != 9:
+                    return 'введите корректный айди чела которого надо послать'
+                else:
+                    return sendMsg2id(vksession, distId, 'ктото позвал тебя бухать')
+            else:
+                distId = usersDataBase.findIdByFieldS(['firstname', 'secondname'], [com[2], com[3]])
+                if distId:
+                    return sendMsg2id(vksession, distId, 'ктото позвал тебя бухать')
+                else:
+                    return 'я его(ее) не нашел'
 
         elif msg.startswith('написать'):
-            if (msg.find('\n') == -1) or len(msg) < 18:
-                return 'чел ты...\nнеправильно составил команду\nнадо так:\n\nнаписать 187191431\nвылези из под стола'
-            msg_split = msg.split('\n')
-            msg_split_command = msg_split[0].split(' ')
-            distId = msg_split_command[1]
-            if len(msg_split_command) > 2 and msg_split_command[2] == 'анон':
-                text = msg_split[1]
-            else:
-                text = userData['firstname'] + ' оставил тебе сообщение:\n' + msg_split[1]
-            return sendMsg2id(vksession, distId, text)
-
-        elif msg.startswith('отправить'):
-            if (msg.find('\n') == -1) or len(msg) < 12:
-                return 'чел ты...\nнеправильно составил команду\nнадо так:\n\nотправить jnk\nчел ты гений'
-            msg_split = msg.split('\n')
-            msg_split_command = msg_split[0].split(' ')
-            distId = usersDataBase.findIdByField('firstname', msg_split_command[1])
+            if usersDataBase.getUserData(id)['admin'] < 1:
+                return 'это действие могут выполнять только пользователи с уровнем не ниже 1'
+            msg_start = msg.find('\n')
+            msg_split_command = msg.split('\n')[0].split(' ')
+            if len(msg_split_command) < 3 or msg_start == -1:
+                return 'чел ты...\nнеправильно составил команду\nнадо так:\n\nотправить женя калинин\nчел ты гений'
+            distId = usersDataBase.findIdByFieldS(['firstname', 'secondname'], [msg_split_command[1], msg_split_command[2]])
             if not distId:
-                distId = usersDataBase.findIdByField('nick', msg_split_command[1])
-            if not distId:
-                return 'такого чела нет в моих с(письках)'
-            if len(msg_split_command) > 2 and msg_split_command[2] == 'анон':
-                text = msg_split[1]
+                return 'я его(ее) не нашел'
+            msg_text = msg[msg_start:]
+            if usersDataBase.getUserData(distId)['admin'] > 500:
+                if contain5(msg_text, [ 'иди', 'пошел', 'пашел', 'пашол', 'пашол', 'пошол', 'пошёл', 'gjitk' ]) and contain5(msg_text, [ 'хуй', 'пизду', '[eq' ]) or \
+                    msg_text.find('соси') != -1 or contain5(msg_text, [ 'пидор', 'пидр' ]) or \
+                    contain5(msg_text, [ 'уебок', 'уебан', 'мудак', 'гнида', 'хуесос', 'мудила', 'конченый', 'долбаеб', 'лох', 'хуйня', 'хуесос', 'блядина', 'чмо' ]):
+                        return 'ты такие слова админу не говори'
+            if len(msg_split_command) > 3 and msg_split_command[3] == 'анон':
+                text = msg_text
             else:
-                text = userData['firstname'] + ' оставил тебе сообщение:\n' + msg_split[1]
+                text = userData['firstname'] + ' оставил тебе сообщение:\n' + msg_text
             return sendMsg2id(vksession, distId, text)
 
         elif msg.startswith('заспамить админа'):
@@ -142,6 +203,9 @@ def msgProc(id, msg, vksession, upload):
                 return 'неправильная команда (сообщение надо писать с новой строки)'
             sendEmail2Admin(id, msg[16:])
             return 'ваши замечания приняты, возможно, их прочитают'
+
+        elif msg.startswith('idbyname'):
+            return '@id' + str(usersDataBase.findIdByFieldS(['firstname', 'secondname'], [msg.split(' ')[1], msg.split(' ')[2]]))
 
         elif msg.startswith('поиск'):
 
@@ -166,25 +230,14 @@ def msgProc(id, msg, vksession, upload):
                     'photo{}_{}'.format(photo['owner_id'], photo['id'])
                 )
 
-                vksession.method('messages.send',
-                    {
-                        'user_id': id,
-                        'message': text,
-                        'random_id': get_random_id(),
-                        'attachment': ','.join(attachments)
-                    })
+                sendMsg2id(vksession, peer_id, text, ','.join(attachments))
 
-                return 'не благодари'
+                return -1
 
             elif text:
-                vksession.method('messages.send',
-                    {
-                        'user_id': id,
-                        'message': text,
-                        'random_id': get_random_id(),
-                    })
+                sendMsg2id(vksession, peer_id, text)
 
-                return 'не благодари'
+                return -1
 
             elif wiki:
                 return response.get('AbstractURL')
@@ -192,12 +245,23 @@ def msgProc(id, msg, vksession, upload):
             else:
                 return 'нихуя не нашлось'
 
+        elif msg == 'джони' or msg == 'джонни' or msg == 'johny' or msg == 'johnny':
+            with open('additional_data/johny.json', 'r', encoding='utf-8') as f:
+                url = choo5e(json.load(f)['list'])
+            sendMsgWithPhoto(vksession, peer_id, '', url, upload)
+            return -1
+
         elif msg == 'help' or msg == 'команды' or msg == 'командв':
             return constructHelpMsg(userData['admin'])
 
         elif msg.startswith('переведи'):
+            if fwdmsgs:
+                text = ''
+                for msg in fwdmsgs:
+                    text += replace_layout(msg) + '\n\n'
+                return text
             if msg[8] != '\n' and msg[9] != '\n':
-                return 'неправильная команда (сообщение надо писать с новой строки)'
+                return 'неправильная команда (сообщение надо писать с новой строки или пересылать чьето сообщение)'
             return replace_layout(msg[9:])
 
         elif i5(msg, ['анекдот', 'шутка', 'разрывная']):
@@ -222,15 +286,24 @@ def msgProc(id, msg, vksession, upload):
             list = usersDataBase.getSortedList(['firstname', 'secondname', 'nick'], 'firstname')
             msg = ''
             for el in list:
-                msg += el['firstname'] + ' ' + el['secondname'] + ' aka: ' + el['nick'] + '\n'
+                msg += 'id ' + el['id'] + '\n' + el['firstname'] + ' ' + el['secondname'] + ' aka: ' + el['nick'] + '\n'
             return msg
 
         elif msg == 'топ людей':
+
             list = usersDataBase.getSortedList(['firstname', 'secondname', 'msgCount'], 'msgCount', True)
             msg = 'топ 5 подпесчиков по количесву сообщений:\n\n'
             for el in list[0:5]:
                 msg += str(el['msgCount']) + ':\n' + el['firstname'] + ' ' + el['secondname'][0] + '. @id' + str(el['id']) + '\n'
+                
+            list = usersDataBase.getSortedList(['firstname', 'secondname', 'naxui_ur'], 'naxui_ur', True)
+            msg += '\n\nтоп 5 подпесчиков по количесву посыланий:\n\n'
+            for el in list[0:5]:
+                msg += '~' + str(int(el['naxui_ur'] / 10) * 10) + ':\n' + el['firstname'] + ' ' + el['secondname'][0] + '. @id' + str(el['id']) + '\n'
             return msg
+
+        elif msg == 'начать':
+            return 'привет!\nчтобы посмотреть список доступных команд напиши help или команды'
 
 
 
@@ -318,6 +391,11 @@ def msgProc(id, msg, vksession, upload):
                 return 'действие доступно только админам лвла не ниже 500'
             usersDataBase.forceUpdate()
             return 'updated'
+        elif msg == 'restore db':
+            if usersDataBase.getUserData(id)['admin'] < 500:
+                return 'действие доступно только админам лвла не ниже 500'
+            usersDataBase.updateList()
+            return 'restored'
 
 
 
@@ -485,6 +563,10 @@ def msgProc(id, msg, vksession, upload):
                 text += '\nправа админа: ' + str(userData['admin'])
             if 'ban' in userData:
                 text += '\nбыл бан ' + time.ctime(userData['ban']['start'])
+            if 'naxui_ur' in userData:
+                text += '\nты посылал ' + str(userData['naxui_ur']) + ' раз'
+            if 'naxui' in userData:
+                text += '\nтебя пытались послать ' + str(userData['naxui']) + ' раз(а)'
             return text
 
         elif msg.startswith('кто ты'):
@@ -544,8 +626,6 @@ def msgProc(id, msg, vksession, upload):
 
         elif msg.startswith('пидора ответ'):
             return choo5e([ 'шлюхи аргумент' ])
-        elif contain5(msg, [ 'пидор', 'пидр' ]):
-            return choo5e([ 'сам пидор', 'пошел нахуй', 'gjitk yf[eq', 'sosi', 'ты че сука', 'а по ебалу??' ])
         elif contain5(msg, [ 'иди', 'пошел', 'пашел', 'пашол', 'пашол', 'пошол', 'пошёл', 'gjitk' ]) and contain5(msg, [ 'хуй', 'пизду', '[eq' ]):
             return choo5e([ 'сам иди', 'пошел нахуй', 'gjitk yf[eq', 'sosi', 'ты че сука', 'а может ты?' ])
         elif msg.find('соси') != -1 :
@@ -558,12 +638,24 @@ def msgProc(id, msg, vksession, upload):
             return 'РЕЗНЯЯЯЯЯЯЯЯЯ'
         elif msg.find('гном') != -1 :
             return 'гном тут только ты'    
-        elif contain5(msg, [ 'уебок', 'уебан', 'мудак', 'гнида', 'хуесос', 'мудила', 'ебан', 'конченый', 'долбаеб', 'лох' ]):
-            return choo5e([ 'ой да иди в пизду долбаеб блять', 'ебало закрой', msg, 'хули ты обзываешься пидорас', 'говоришь на меня переводишь на себя нахуй' ])
+        elif contain5(msg, [ 'уебок', 'уебан', 'мудак', 'гнида', 'хуесос', 'мудила', 'ебан', 'конченый', 'долбаеб', 'лох', 'дебил', 'дибил', 'пидор', 'пидр']):
+            if contain5(msg, ['админ']):
+                return 'бля, {}, сложно быть страшнее меня, но у твоей мамаши хорошо получается, уважаю, брат'.format(userData['firstname'])
+            return choo5e([ 'ой да иди в пизду долбаеб блять', 'ебало закрой', msg, 'хули ты обзываешься пидорас', 'говоришь на меня переводишь на себя нахуй',
+                'сам пидор', 'пошел нахуй', 'gjitk yf[eq', 'sosi', 'ты че сука', 'а по ебалу??' ])
         elif msg.find('ахуел') != -1 or msg.find('охуел') != -1:
             return choo5e([ 'сам охуел', 'а может ты охуел?', 'нет' ])
         elif msg.find('заебал') != -1:
             return choo5e([ 'сам заебал', 'это ты заебал' ])
+
+        elif msg == 'amogus' or msg == 'амогус' or msg == 'абоба' or msg == 'aboba':
+            amogus = {
+                'id': '456241722',
+                'owner_id': '133887163',
+            }
+            print(peer_id)
+            sendAudio2id(vksession, peer_id, amogus['owner_id'], amogus['id'])
+            return -1
 
 
 
@@ -589,3 +681,83 @@ def msgProc(id, msg, vksession, upload):
         elif msg == 'буст сооьщений':
             return 'число ваших сообщений было увеличено на 1'
 
+
+
+        # start commands
+
+        elif startswith_list(msg, ['start', 'старт']):
+            
+            commands = msg.split(' ')
+
+            if i5(commands[1], ['мафия', 'mafia']):
+                
+                if not inChat:
+                    return 'команда доступна тольkо для чатов'
+
+                if peer_id in SomeVars.chats:
+                    return 'сначала закончите ' + SomeVars.chats[peer_id]['action']
+
+                SomeVars.chats[peer_id] = {
+                    'action': 'mafia',
+                    'starttime': time.time(),
+                    'roles_start': 0
+                }
+
+                return 'введите роли и количество игроков построчно типо такого (если какойто роли не надо, то ее писать не надо):\n\nмафия 1\nмирный 3\nмедик 1\nкомиссар 1'
+
+        elif startswith_list(msg, ['end', 'закончить']):
+            
+            commands = msg.split(' ')
+
+            if i5(commands[1], ['мафия', 'mafia']):
+                
+                if not inChat:
+                    return 'команда доступна тольkо для чатов'
+
+                SomeVars.chats.pop(peer_id)
+
+                return 'действие завершено'
+
+
+        elif inChat:
+
+            if peer_id in SomeVars.chats:
+                if (time.time() - SomeVars.chats[peer_id]['starttime']) < 86400:
+
+                    info = SomeVars.chats[peer_id]
+
+                    if info['action'] == 'mafia':
+
+                        if info['roles_start'] == 0:
+                            commands = msg.split('\n')
+                            info['roles_start'] = []
+                            info['players'] = []
+                            for role in commands:
+                                role_splitted = role.split(' ')
+                                for i in range(int(role_splitted[1])):
+                                    info['roles_start'].append(role_splitted[0])
+                            return 'теперь пишете "я" и бот скинет вам вашу роль'
+
+                        elif msg == 'я' and info['roles_start']:
+
+                            if not info['roles_start']:
+                                return 'все роли уже раздали'
+                            print(info['players'])
+                            print(id)
+                            if dicklist_search(info['players'], 'id', id) > -1:
+                                return 'у тебя уже есть роль, чекай лс'
+
+                            role_num = random.randint(0, len(info['roles_start']) - 1)
+                            role = info['roles_start'][role_num]
+                            info['roles_start'].pop(role_num)
+                            info['players'].append({
+                                'id': id,
+                                'name': userData['firstname'] + ' ' + userData['secondname'],
+                                'role': role
+                            })
+
+                            sendMsg2id(vksession, id, role)
+                            if not info['roles_start']:
+                                SomeVars.chats.pop(peer_id)
+                                return 'это все'
+                            return -1

@@ -91,6 +91,14 @@ def endswith_list(text, list):
             return True
     return False
 
+# check if text starts with any of list strs    
+def startswith_list(text, list):
+    for str in list:
+        if text.startswith(str):
+            return True
+    return False
+
+
 layoutDic = {
 
     # en2ru
@@ -187,3 +195,12 @@ def replace_layout(text):
         else:
             text1 += c
     return text1
+
+
+
+def dicklist_search(list, key, value):
+    for i in range(len(list)):
+        if key in list[i]:
+            if list[i][key] == value:
+                return i
+    return -1

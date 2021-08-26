@@ -1,10 +1,12 @@
+from vk_api import bot_longpoll
 from users_db import usersDataBase                          # importing users database module
 from replies import msgProc, sendEmail2Admin, sendMsg2id    # importing message pricessing function
-from vars import group_token, debug, sleep_timeout, admin_token, dbUpdateCooldown, admin_id     # importing variables of bot init
+from vars import group_token, debug, sleep_timeout, admin_token, dbUpdateCooldown, admin_id, public_id     # importing variables of bot init
 import time
 import vk_api
 from vk_api import VkUpload
 from vk_api.longpoll import VkLongPoll, VkEventType
+from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.utils import get_random_id
 # import socket, urllib3, requests                      # for exception codes
 
@@ -13,7 +15,8 @@ from vk_api.utils import get_random_id
 vkBotSession = vk_api.VkApi(token=group_token)
 # send message to id
 def sendMsg(id, msg, attachments = ''):
-    vkBotSession.method('messages.send', { 'user_id': id, 'message': msg, 'random_id': 0, 'attachment': ','.join(attachments) })
+    vkBotSession.get_api().messages.send(peer_id=id, message=msg, random_id = 0)
+    #vkBotSession.method('messages.send', { 'user_id': id, 'message': msg, 'random_id': 0, 'attachment': ','.join(attachments) })
 
 
 def main():
@@ -32,7 +35,7 @@ def main():
         # get api for connecting to my community
         vkBotSession = vk_api.VkApi(token=group_token)
         vkBotApi = vkBotSession.get_api()
-        vkLongpoll = VkLongPoll(vkBotSession)
+        vkLongpoll = VkBotLongPoll(vkBotSession, public_id)
         vkUpload = VkUpload(vkBotSession)
 
 
@@ -45,11 +48,19 @@ def main():
             # main loop
             for event in vkLongpoll.listen():
 
-                if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                if event.type == VkBotEventType.MESSAGE_NEW and ( event.from_chat or event.from_user ):
+
+                        #print(event)
                         
                         # get and convert message to lower case
-                        userMsg = event.text.lower()
-                        userVkId = event.user_id
+                        userMsg = event.message.text.lower()
+                        userVkId = event.message.from_id
+                        chatId = False
+                        if event.from_chat:
+                            chatId = event.chat_id + bot_longpoll.CHAT_START_ID
+                        fwdMsgs = []
+                        for msg in event.message.fwd_messages:
+                            fwdMsgs.append(msg['text'])
                         
                         # search user in database
                         userData = usersDataBase.getUserData(userVkId)
@@ -63,7 +74,7 @@ def main():
                             userData = {
                                 'firstname': name[0],
                                 'secondname': name[1],
-                                'admin': 0,
+                                'admin': 5,
                                 'group': '',
                                 'nick': name[0],
                                 'msgCount': 0,
@@ -76,6 +87,8 @@ def main():
                         print(userData['firstname'], userData['secondname'], 'id=' + str(userVkId))
                         print(time.ctime())
                         print(userMsg)
+                        if fwdMsgs:
+                            print('forward msgs:\n', fwdMsgs)
 
                         # turning bot off condition (admins 500 only)
                         if userMsg == 'стоп':
@@ -99,23 +112,27 @@ def main():
 
                         # get reply message
                         if debug:
-                            botReply = msgProc(userVkId, userMsg, vkBotSession, vkUpload)
+                            botReply = msgProc(userVkId, userMsg, vkBotSession, vkUpload, fwdMsgs, chatId)
                         else:
                             # catch msg processing error
                             try:
-                                botReply = msgProc(userVkId, userMsg, vkBotSession, vkUpload)
+                                botReply = msgProc(userVkId, userMsg, vkBotSession, vkUpload, fwdMsgs, chatId)
                             except BaseException:
-                                botReply = 'ты блять его убил нахуй\nты его захуярил'
+                                botReply = 'ваши действия привели к ошибке и от умер :С\nно его воскресили C:'
                                 file = open('error_msgs.txt','a', encoding='utf-8')
                                 file.write('///   NEW ERROR   ///\nMSG: "' + userMsg + '"\nTIME: ' + time.ctime() + '\n\n\n')
                                 file.close()
 
-                        # send reply to user
+                        # send reply
                         if botReply:
                             # update user messages counter
                             userData['msgCount'] += 1
-                            # send reply
-                            sendMsg(userVkId, botReply)
+                            if botReply != -1:
+                                # send reply (to chat or to user)
+                                if chatId:
+                                    sendMsg(chatId, botReply)
+                                else:
+                                    sendMsg(userVkId, botReply)
                             print('\nAnswered')
 
                         print('\n\n')
@@ -133,8 +150,12 @@ def main():
 
         # if vk is gay then restart connection
         # errrs: socket.timeout, urllib3.exceptions.ReadTimeoutError, requests.exceptions.ReadTimeout
-        except BaseException:   # vashe poxui
-           True
+        except BaseException as err_msg:   # vashe poxui
+            if debug:
+                print(err_msg)
+                isBotRunning = False
+            else:
+                print('\n\nBOT HAS BEEN RESTARTED\n\n')
 
 
 # running script
