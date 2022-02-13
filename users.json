@@ -1,58 +1,14 @@
 {
-    "139362648": {
-        "admin": false,
-        "firstname": "\u0410\u0440\u0442\u0435\u043c",
-        "group": "",
-        "msgCount": 0,
-        "nick": "\u0410\u0440\u0442\u0435\u043c",
-        "secondname": "\u0421\u0435\u043c\u0435\u043d\u043e\u0432"
-    },
     "190344587": {
-        "admin": true,
+        "man": true,
+        "naxui_ur": 20,
         "firstname": "\u0416\u0435\u043d\u044f",
+        "secondname": "\u041a\u0430\u043b\u0438\u043d\u0438\u043d",
         "group": "381904",
-        "msgCount": 21,
+        "naxui": 1,
         "nick": "poshel_naxui",
-        "secondname": "\u041a\u0430\u043b\u0438\u043d\u0438\u043d"
-    },
-    "193851368": {
-        "admin": true,
-        "firstname": "\u0421\u0435\u0440\u0433\u0435\u0439",
-        "group": "",
-        "msgCount": 0,
-        "nick": "n@gib@tt0r_3000",
-        "secondname": "\u0411\u0435\u0441\u043f\u0430\u043b\u043e\u0432"
-    },
-    "210809692": {
-        "admin": false,
-        "firstname": "\u0410\u043b\u0435\u043a\u0441\u0435\u0439",
-        "group": "",
-        "msgCount": 0,
-        "nick": "\u0410\u043b\u0435\u043a\u0441\u0435\u0439",
-        "secondname": "\u0422\u0435\u0440\u043c\u0435\u043d\u0435\u0432"
-    },
-    "214156033": {
-        "admin": true,
-        "firstname": "\u0410\u0440\u0442\u0443\u0440",
-        "group": "",
-        "msgCount": 0,
-        "nick": "\u0410\u0440\u0442\u0443\u0440",
-        "secondname": "\u0410\u0440\u0430\u043a\u0435\u043b\u043e\u0432"
-    },
-    "221928226": {
-        "admin": false,
-        "firstname": "\u0421\u0432\u0435\u0442\u043b\u0430\u043d\u0430",
-        "group": "",
-        "msgCount": 0,
-        "nick": "\u0421\u0432\u0435\u0442\u043b\u0430\u043d\u0430",
-        "secondname": "\u041f\u0438\u043c\u0435\u043d\u043e\u0432\u0430"
-    },
-    "624030526": {
-        "admin": false,
-        "firstname": "\u0414\u043c\u0438\u0442\u0440\u0438\u0439",
-        "group": "",
-        "msgCount": 0,
-        "nick": "\u0414\u043c\u0438\u0442\u0440\u0438\u0439",
-        "secondname": "\u041f\u0435\u0447\u0443\u0440\u043a\u0438\u043d"
+        "volokno": 0,
+        "admin": 999,
+        "msgCount": 777
     }
 }

@@ -99,6 +99,12 @@ class UsersDataBase:
                         resList[k] = tmp
         return resList
 
+    def updateFieldByFooOfId(self, key, valueFoo):
+        for id in self.userlist:
+            if self.userlist[id]['firstname'] == 'bot':
+                continue
+            self.userlist[id][key] = valueFoo(id)
+
 
 
 usersDataBase = UsersDataBase()

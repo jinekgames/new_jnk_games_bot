@@ -1,14 +1,17 @@
+from random import randint
 from vk_api import bot_longpoll
 from users_db import usersDataBase                          # importing users database module
-from replies import msgProc, sendEmail2Admin, sendMsg2id    # importing message pricessing function
+from replies import msgProc, sendEmail2Admin, sendMsg2id, sendMsgWithPhoto    # importing message pricessing function
 from vars import group_token, debug, sleep_timeout, admin_token, dbUpdateCooldown, admin_id, public_id     # importing variables of bot init
 import time
 import vk_api
 from vk_api import VkUpload
 from vk_api.longpoll import VkLongPoll, VkEventType
-from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
+from vk_api.bot_longpoll import CHAT_START_ID, VkBotLongPoll, VkBotEventType
 from vk_api.utils import get_random_id
 # import socket, urllib3, requests                      # for exception codes
+import linecache
+import sys
 
 
 # vk_api variable
@@ -17,6 +20,16 @@ vkBotSession = vk_api.VkApi(token=group_token)
 def sendMsg(id, msg, attachments = ''):
     vkBotSession.get_api().messages.send(peer_id=id, message=msg, random_id = 0)
     #vkBotSession.method('messages.send', { 'user_id': id, 'message': msg, 'random_id': 0, 'attachment': ','.join(attachments) })
+
+
+def TextException():
+    exc_type, exc_obj, tb = sys.exc_info()
+    f = tb.tb_frame
+    lineno = tb.tb_lineno
+    filename = f.f_code.co_filename
+    linecache.checkcache(filename)
+    line = linecache.getline(filename, lineno, f.f_globals)
+    return 'EXCEPTION IN ({}, LINE {} "{}"):\n{}'.format(filename, lineno, line.strip(), exc_obj)
 
 
 def main():
@@ -50,10 +63,10 @@ def main():
 
                 if event.type == VkBotEventType.MESSAGE_NEW and ( event.from_chat or event.from_user ):
 
-                        #print(event)
+                        # print(event)
                         
-                        # get and convert message to lower case
-                        userMsg = event.message.text.lower()
+                        # get message
+                        userMsg = event.message.text
                         userVkId = event.message.from_id
                         chatId = False
                         if event.from_chat:
@@ -61,6 +74,16 @@ def main():
                         fwdMsgs = []
                         for msg in event.message.fwd_messages:
                             fwdMsgs.append(msg['text'])
+
+                        # if new user in chat
+                        if chatId and 'action' in event.message:
+                            if event.message['action']['type'] == 'chat_invite_user':
+                                memberId = str(event.message['action']['member_id'])
+                                name = vkBotApi.users.get(user_ids=memberId)[0]['first_name']
+                                sendMsgWithPhoto(vkBotSession, chatId, 'Добро пожаловать, @id' + memberId + ' (' + name + ')', 
+                                    'https://sun9-55.userapi.com/impg/q1LpyI9Ee5nljJbs7bVH9PM_HtRdnUmCamsC0A/azoIGKs0u4I.jpg?size=640x640&quality=96&sign=4207452937cb3598f54553226670d002&type=album',
+                                    vkUpload)
+                                continue
                         
                         # search user in database
                         userData = usersDataBase.getUserData(userVkId)
@@ -68,17 +91,28 @@ def main():
                         if not userData:
                             print('NEW USER\n')
                             # get user name by vk id
-                            response = vkBotApi.users.get(user_ids=userVkId)
-                            name = [str(response[0]['first_name']), str(response[0]['last_name'])]
-                            # save user data
-                            userData = {
-                                'firstname': name[0],
-                                'secondname': name[1],
-                                'admin': 5,
-                                'group': '',
-                                'nick': name[0],
-                                'msgCount': 0,
-                            }
+                            userData = {}
+                            if userVkId > 0 and userVkId < CHAT_START_ID:
+                                response = vkBotApi.users.get(user_ids=userVkId, fields='sex')[0]
+                                man = True
+                                if response['sex'] == 1:
+                                    man = False
+                                userData = {
+                                    'firstname': str(response['first_name']),
+                                    'secondname': str(response['last_name']),
+                                    'admin': 6,
+                                    'group': '',
+                                    'nick': str(response['first_name']),
+                                    'msgCount': 0,
+                                    'man': man
+                                }
+                            else:
+                                userData = {
+                                    'firstname': 'bot',
+                                    'secondname': str(randint(0, 1000)),
+                                    'admin': 5,
+                                    'msgCount': 0,
+                                }
                             # save data in db
                             usersDataBase.add2List(userVkId, userData)
                             usersDataBase.forceUpdate()
@@ -118,9 +152,11 @@ def main():
                             try:
                                 botReply = msgProc(userVkId, userMsg, vkBotSession, vkUpload, fwdMsgs, chatId)
                             except BaseException:
-                                botReply = 'ваши действия привели к ошибке и от умер :С\nно его воскресили C:'
+                                botReply = 'ваши действия привели к ошибке и bот умер :С\nно его воскресили C:'
+                                err = TextException()
+                                print(err)
                                 file = open('error_msgs.txt','a', encoding='utf-8')
-                                file.write('///   NEW ERROR   ///\nMSG: "' + userMsg + '"\nTIME: ' + time.ctime() + '\n\n\n')
+                                file.write('///   NEW ERROR   ///\nMSG: "' + userMsg + '\nERR: "' + err + '"\nTIME: ' + time.ctime() + '\n\n\n')
                                 file.close()
 
                         # send reply
@@ -156,6 +192,10 @@ def main():
                 isBotRunning = False
             else:
                 print('\n\nBOT HAS BEEN RESTARTED\n\n')
+                file = open('error_msgs.txt','a', encoding='utf-8')
+                file.write('///   NEW ERROR   ///\n' + '\nERR: ' + str(err_msg) + '\nTIME: ' + time.ctime() + '\n\n\n')
+                file.close()
+
 
 
 # running script

@@ -1,7 +1,7 @@
 from os import truncate
 from users_db import usersDataBase
 from str_module import contain5, end5, i5, choo5e, endswith_list, _contain5, _end5, replace_layout, startswith_list, dicklist_search
-from vars import public_email_pswrd, admin_id
+from vars import public_email_pswrd, secret_msg_chance, bad_answ_prob
 from  help_msgs import constructHelpMsg
 import time
 import requests
@@ -74,8 +74,25 @@ def sendAudio2id(vksession, peerId, trackOwnerId, trackId, msg=''):
     attachments.append('audio{}_{}'.format(trackOwnerId, trackId))
     vksession.get_api().messages.send(peer_id=peerId, message=msg, random_id=get_random_id(), attachment=attachments)
 
+def choo5eBySex(manVal, womanVal, man):
+    if man:
+        return manVal
+    return womanVal
+
+def randBadAnswer(answer, probability = bad_answ_prob):
+    rand = random.randint(0, 100)
+    if rand < probability:
+        return answer
+    return -1
+
+def isWeekEven(date=datetime.date.today()):
+    return date.isocalendar()[1] % 2 == 0
+
 # return reply for user accornding to message
-def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
+def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
+
+    # convert message to lower case
+    msg = msgReal.lower()
 
     inChat = False
     if not peer_id:
@@ -103,6 +120,10 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
         
         # HUINYA
 
+        rnd_int = random.randint(0, 1000)
+        if rnd_int < secret_msg_chance:
+            return choo5e([ 'мне похуй', 'много хочешь' ])
+
         if contain5(msg, [ 'поздравить', 'подравляю', 'поздравляю', 'с др' ]):
             if contain5(msg, [ 'данила', 'донила', 'даниила' ]):
                 return sendMsg2id(vksession, 187191431, userData['firstname'] + ' поздравил тебя с др')
@@ -129,7 +150,7 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
                     userData_ = usersDataBase.getUserData(distId)
                     if userData_:
                         if userData_['admin'] > userData['admin'] and userData['admin'] < 500:
-                            return 'сам пошел нахуй'
+                            return choo5eBySex('сам пошел нахуй', 'сама пошла нахуй', userData['man'])
                         if not 'naxui' in userData_:
                             userData_['naxui'] = 1
                         else:
@@ -146,7 +167,7 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
                 if distId:
                     userData_ = usersDataBase.getUserData(distId)
                     if userData_['admin'] > userData['admin'] and userData['admin'] < 500:
-                        return 'сам пошел нахуй'
+                        return choo5eBySex('сам пошел нахуй', 'сама пошла нахуй', userData['man'])
                     if not 'naxui' in userData_:
                         userData_['naxui'] = 1
                     else:
@@ -251,6 +272,15 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
             sendMsgWithPhoto(vksession, peer_id, '', url, upload)
             return -1
 
+        if msg == 'какое я волокно':
+            if not 'volokno' in userData:
+                userData['volokno'] = random.randint(0, 1)
+            if userData['volokno']:
+                return 'сжатое'
+            else:
+                return 'растянутое'
+
+
         elif msg == 'help' or msg == 'команды' or msg == 'командв':
             return constructHelpMsg(userData['admin'])
 
@@ -286,6 +316,8 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
             list = usersDataBase.getSortedList(['firstname', 'secondname', 'nick'], 'firstname')
             msg = ''
             for el in list:
+                if el['firstname'] == 'bot':
+                    continue
                 msg += 'id ' + el['id'] + '\n' + el['firstname'] + ' ' + el['secondname'] + ' aka: ' + el['nick'] + '\n'
             return msg
 
@@ -315,7 +347,7 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
             return 'изи'
 
         elif msg.startswith('setadmin'):
-            if usersDataBase.getUserData(id)['admin'] < 100:
+            if userData['admin'] < 100:
                 return 'назначать админов могут толкьо админы лвлом не ниже 100'
 
             cmds = msg.split(' ')
@@ -337,7 +369,7 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
             return 'done'
 
         elif msg.startswith('ban'):
-            if usersDataBase.getUserData(id)['admin'] < 100:
+            if userData['admin'] < 100:
                 return 'банить могут только админы лвла не ниже 100'
 
             comands = msg.split(' ')
@@ -356,7 +388,7 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
             return 'done'
 
         elif msg.startswith('permoban'):
-            if usersDataBase.getUserData(id)['admin'] < 300:
+            if userData['admin'] < 300:
                 return '(с)перма банить могут только админы лвла не ниже 300'
 
             comands = msg.split(' ')
@@ -373,7 +405,7 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
             return 'done\nесли что его больше не вернуть (никак)'
 
         elif msg.startswith('unban'):
-            if usersDataBase.getUserData(id)['admin'] < 101:
+            if userData['admin'] < 101:
                 return 'разбанить могут только админы лвла не ниже 101'
 
             distId = msg.split(' ')
@@ -386,17 +418,56 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
             userData_['ban']['time'] = 0
             return 'done'
 
+        elif msg.startswith('userdata'):
+            if userData['admin'] < 100:
+                return 'функция доступна только пользователям с уровнем не ниже 100'
+            distId = msg.split(' ')[1]
+            userData_ = usersDataBase.getUserData(distId)
+            text = userData_['firstname'] + ' ' + userData_['secondname'] + '\nAKA: ' + userData_['nick'] + \
+                '\nотправил боту ' + str(userData_['msgCount']) + ' сообщений(е)'
+            if 'man' in userData_:
+                text += '\nмужчина: ' + choo5eBySex('да', 'нет', userData_['man'])
+            if len(userData_['group']) > 0:
+                text += '\nгруппа: ' + userData_['group']
+            if userData_['admin']:
+                text += '\nправа админа: ' + str(userData_['admin'])
+            if 'ban' in userData_:
+                text += '\nбыл бан ' + time.ctime(userData_['ban']['start'])
+            if 'naxui_ur' in userData_:
+                text += '\nпосылал ' + str(userData_['naxui_ur']) + ' раз'
+            if 'naxui' in userData_:
+                text += '\nпытались послать ' + str(userData_['naxui']) + ' раз(а)'
+            return text
+
         elif msg == 'update db':
-            if usersDataBase.getUserData(id)['admin'] < 500:
+            if userData['admin'] < 500:
                 return 'действие доступно только админам лвла не ниже 500'
             usersDataBase.forceUpdate()
             return 'updated'
         elif msg == 'restore db':
-            if usersDataBase.getUserData(id)['admin'] < 500:
+            if userData['admin'] < 500:
                 return 'действие доступно только админам лвла не ниже 500'
             usersDataBase.updateList()
             return 'restored'
 
+        elif msg.startswith('updatefield'):
+            if userData['admin'] < 500:
+                return 'действие доступно только админам лвла не ниже 500'
+            field = msg.split(' ')[1]
+
+            if field == 'sex':
+
+                vkapi = vksession.get_api()
+                def foo(id):
+                    vksex = vkapi.users.get(user_ids=id, fields='sex')[0]['sex']
+                    if vksex == 1:
+                        return False
+                    return True
+
+                usersDataBase.updateFieldByFooOfId('man', foo)
+                return 'ok'
+
+            return 'incorrect command'
 
 
 
@@ -478,20 +549,30 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
                 scedullar = json.load(f)
             return scedullar[userData['group']][calendar.day_name[tomorrow.weekday()]]
 
-        elif msg == 'неделя':
-            if userData[userData['group']]['group'] == '':
+        elif msg == 'расписание':
+            if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
+            if userData['group'] in scedullar:
+                scedullar = scedullar[userData['group']]
+            else:
+                return 'твоей группы пока нет в расписании, обратись к админу сообщества'
             text = ''
-            text += 'ПОНЕДЕЛЬНИК\n\n' + scedullar['Monday'] + '\n=========================\n\n'
-            text += 'ВТОРНИК\n\n' + scedullar['Tuesday'] + '\n=========================\n\n'
-            text += 'СРЕДА\n\n' + scedullar['Wednesday'] + '\n=========================\n\n'
-            text += 'ЧЕТВЕРГ\n\n' + scedullar['Thursday'] + '\n=========================\n\n'
-            text += 'ПЯТНИЦА\n\n' + scedullar['Friday'] + '\n=========================\n\n'
-            text += 'СУББОТА\n\n' + scedullar['Saturday'] + '\n=========================\n\n'
+            text += 'ПОНЕДЕЛЬНИК\n\n' + scedullar['Monday'] + '\n=======================\n\n'
+            text += 'ВТОРНИК\n\n' + scedullar['Tuesday'] + '\n=======================\n\n'
+            text += 'СРЕДА\n\n' + scedullar['Wednesday'] + '\n=======================\n\n'
+            text += 'ЧЕТВЕРГ\n\n' + scedullar['Thursday'] + '\n=======================\n\n'
+            text += 'ПЯТНИЦА\n\n' + scedullar['Friday'] + '\n=======================\n\n'
+            text += 'СУББОТА\n\n' + scedullar['Saturday'] + '\n=======================\n\n'
             text += 'ВОСКРЕСЕНЬЕ\n\n' + scedullar['Sunday']
             return text
+
+        elif msg == 'неделя':
+            if isWeekEven():
+                return 'четная'
+            return 'нечетная'
+
 
         elif msg.startswith('редактировать'):
 
@@ -514,7 +595,7 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
                 weekday = weekday_ru_en( commands[1] )
                 if not weekday:
                     return 'неправильная команда'
-                new_text = msg[ start_pointer+1 : len(msg) ]
+                new_text = msgReal[ start_pointer+1: ]
 
                 with open('scedullar.json', 'r', encoding='utf-8') as f:
                     scedullar = json.load(f)
@@ -557,6 +638,8 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
         elif contain5(msg, ['мои данные']):
             text = userData['firstname'] + ' ' + userData['secondname'] + '\nAKA: ' + userData['nick'] + \
                 '\nты отправил боту ' + str(userData['msgCount']) + ' сообщений(е)'
+            if 'man' in userData:
+                text += '\nмужчина: ' + choo5eBySex('да', 'нет', userData['man'])
             if len(userData['group']) > 0:
                 text += '\nтвоя группа: ' + userData['group']
             if userData['admin']:
@@ -578,15 +661,24 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
             return choo5e([ 'пака', 'пока(((', 'увидимся', 'до связи', 'было приятно пообщатсья', 'пока ' + userData['firstname'] ])
 
         elif msg.endswith('да'):
-            return choo5e([ 'пизда', 'манда', 'провода', 'поезда', 'пидора слова', 'правильно' ])
+            answ = choo5e([ 'пизда', 'манда', 'провода', 'поезда', 'пидора слова', 'правильно' ])
+            if inChat:
+                return randBadAnswer(answ)
+            return answ
         elif msg.endswith('нет'):
-            return choo5e([ 'пидора ответ', 'минет', 'шлюхи аргумент' ])
+            answ = choo5e([ 'пидора ответ', 'минет', 'шлюхи аргумент' ])
+            if inChat:
+                return randBadAnswer(answ)
+            return answ
         elif endswith_list(msg, [ '[ff', 'хаа', 'хах', 'хвх', 'аха', 'хпх', 'хкх', 'hah', 'hhh', 'jaj', '[f[', 'хех', 'хых', 'а0а', 'фчф', 'ору', 'ржака', 'ржу', 'ржомба' ]):
-            return choo5e([
+            answ = choo5e([
                 'РЖОМБА', 'Ебать я ору тоже', 'АХАХАХАХАХ))', 'Невероятная ржака', 'ахах)0',
                 ')))))00))))))))))0))))))0))00000000)))))))))))))))))))))))0)0)0))0)0)0)))))',
                 'лолирую', 'ржу уже третий день', 'Ржакаем всем сервером))0'
             ])
+            if inChat:
+                return randBadAnswer(answ)
+            return answ
         elif end5(msg, [ 'але', 'ало', 'алло' ]):
             return choo5e([ 'да', 'да-да', 'але да', 'че', 'ты куда звонишь' ])
 
@@ -605,7 +697,7 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
         elif msg.startswith('правильно'):
             return 'спасибо брат'
         elif msg.startswith('спасибо' ) or msg.endswith('спасибо'):
-            return choo5e([ 'обращайся, братик', 'пожалуйста', 'чел ;3' ])
+            return choo5e([ choo5eBySex('обращайся, братик', 'обращайся, сестренка', userData['man']), 'пожалуйста' ])
         elif msg.startswith('зачем'):
             return choo5e([ 'затем', 'так надо' ])
         elif msg.startswith('почему'):
@@ -627,9 +719,9 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
         elif msg.startswith('пидора ответ'):
             return choo5e([ 'шлюхи аргумент' ])
         elif contain5(msg, [ 'иди', 'пошел', 'пашел', 'пашол', 'пашол', 'пошол', 'пошёл', 'gjitk' ]) and contain5(msg, [ 'хуй', 'пизду', '[eq' ]):
-            return choo5e([ 'сам иди', 'пошел нахуй', 'gjitk yf[eq', 'sosi', 'ты че сука', 'а может ты?' ])
+            return choo5e([ choo5eBySex('сам иди', 'сама иди', userData['man']), choo5eBySex('пошел нахуй', 'пошла нахуй', userData['man']), 'gjitk yf[eq', 'sosi', 'ты че сука', 'а может ты?' ])
         elif msg.find('соси') != -1 :
-            return choo5e([ 'сам соси сука', 'иди нахуй пидорас', 'чекай мать' ])
+            return choo5e([ choo5eBySex('сам соси сука', 'обидно', userData['man']), 'иди нахуй пидорас', 'чекай мать' ])
         elif msg.find('мать') != -1 :
             return choo5e([ 'серьезно чел, шутки про мать в ' + str( datetime.date.today().year ) ])
         elif msg.find('жир') != -1 :
@@ -646,7 +738,9 @@ def msgProc(id, msg, vksession, upload, fwdmsgs, peer_id):
         elif msg.find('ахуел') != -1 or msg.find('охуел') != -1:
             return choo5e([ 'сам охуел', 'а может ты охуел?', 'нет' ])
         elif msg.find('заебал') != -1:
-            return choo5e([ 'сам заебал', 'это ты заебал' ])
+            return choo5e([ choo5eBySex('сам заебал', 'сама заебала', userData['man']), choo5eBySex('это ты заебал', 'это ты заебала', userData['man']) ])
+        elif msg.find('молчать') != -1 and msg.find('машина') != -1:
+            return 'ебало офф'
 
         elif msg == 'amogus' or msg == 'амогус' or msg == 'абоба' or msg == 'aboba':
             amogus = {

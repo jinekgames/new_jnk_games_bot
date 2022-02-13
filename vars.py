@@ -4,3 +4,7 @@ sleep_timeout = 0.1
 admin_token = '111'
 dbUpdateCooldown = 300
 public_email_pswrd = '111'
+admin_id = '190344587'
+public_id = '187431979'
+secret_msg_chance = 20
+bad_answ_prob = 33
