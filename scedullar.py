@@ -1,3 +1,6 @@
+EVEN_WEEK_STR = '_Even'
+NOT_EVEN_WEEK_STR = '_Not_Even'
+
 mmm19_scedullar = [
     # Mon
     'расписание на понедельник',
@@ -32,9 +35,4 @@ def weekday_ru_en(ru_day):
         return 'Sunday'
     else:
         return False
-    # 'вт': 'Tuesday',
-    # 'ср': 'Wednesday',
-    # 'чт': 'Thursday',
-    # 'пт': 'Friday',
-    # 'сб': 'Saturday',
-    # 'вс': 'Sunday',
+        

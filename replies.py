@@ -1,19 +1,24 @@
 from os import truncate
+
 from users_db import usersDataBase
 from str_module import contain5, end5, i5, choo5e, endswith_list, _contain5, _end5, replace_layout, startswith_list, dicklist_search
 from vars import public_email_pswrd, secret_msg_chance, bad_answ_prob
 from  help_msgs import constructHelpMsg
+from scedullar import weekday_ru_en, EVEN_WEEK_STR, NOT_EVEN_WEEK_STR
+
 import time
 import requests
 import json
 import datetime
 import calendar
 import smtplib
+
 import random
 random.seed(version=2)
+
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from scedullar import weekday_ru_en
+
 import vk_api
 from vk_api.utils import get_random_id
 
@@ -85,7 +90,7 @@ def randBadAnswer(answer, probability = bad_answ_prob):
         return answer
     return -1
 
-def isWeekEven(date=datetime.date.today()):
+def isWeekEven(date=datetime.date.today()) -> bool:
     return date.isocalendar()[1] % 2 == 0
 
 # return reply for user accornding to message
@@ -93,6 +98,12 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
 
     # convert message to lower case
     msg = msgReal.lower()
+
+    # is week even param
+    week_even_str = NOT_EVEN_WEEK_STR
+    if isWeekEven():
+        week_even_str = EVEN_WEEK_STR
+
 
     inChat = False
     if not peer_id:
@@ -492,62 +503,93 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
             return 'я запомнил, ты из группы ' + group + '\nтеперь можешь смотреть свое расписание (чекай help) или попроси у @eugene_programmist или другого админа ранга не ниже модера модерку и сможешь его редактировать (!!!при смене группы модерка теряется!!!)'
             
         elif msg == 'пн' or msg == 'понедельник':
+            day_str = 'Monday'
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
-            return scedullar[userData['group']]['Monday']
+            if day_str + week_even_str in scedullar[userData['group']]:
+                day_str += week_even_str
+            return scedullar[userData['group']][day_str]
         elif msg == 'вт' or msg == 'вторник':
+            day_str = 'Tuesday'
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
-            return scedullar[userData['group']]['Tuesday']
+            if day_str + week_even_str in scedullar[userData['group']]:
+                day_str += week_even_str
+            return scedullar[userData['group']][day_str]
         elif msg == 'ср' or msg == 'среда':
+            day_str = 'Wednesday'
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
-            return scedullar[userData['group']]['Wednesday']
+            if day_str + week_even_str in scedullar[userData['group']]:
+                day_str += week_even_str
+            return scedullar[userData['group']][day_str]
         elif msg == 'чт'or msg == 'четверг':
+            day_str = 'Thursday'
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
-            return scedullar[userData['group']]['Thursday']
+            if day_str + week_even_str in scedullar[userData['group']]:
+                day_str += week_even_str
+            return scedullar[userData['group']][day_str]
         elif msg == 'пт' or msg == 'пятница':
+            day_str = 'Friday'
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
-            return scedullar[userData['group']]['Friday']
+            if day_str + week_even_str in scedullar[userData['group']]:
+                day_str += week_even_str
+            return scedullar[userData['group']][day_str]
         elif msg == 'сб' or msg == 'суббота':
+            day_str = 'Saturday'
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
-            return scedullar[userData['group']]['Saturday']
+            if day_str + week_even_str in scedullar[userData['group']]:
+                day_str += week_even_str
+            return scedullar[userData['group']][day_str]
         elif msg == 'вс' or msg == 'воскресенье':
+            day_str = 'Sunday'
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
-            return scedullar[userData['group']]['Sunday']
+            if day_str + week_even_str in scedullar[userData['group']]:
+                day_str += week_even_str
+            return scedullar[userData['group']][day_str]
 
         elif msg == 'сегодня':
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
-            return scedullar[userData['group']][calendar.day_name[datetime.datetime.today().weekday()]]
+            day_str = calendar.day_name[datetime.datetime.today().weekday()]
+            if day_str + week_even_str in scedullar[userData['group']]:
+                day_str += week_even_str
+            return scedullar[userData['group']][day_str]
         elif msg == 'завтра':
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
             today = datetime.date.today()
-            tomorrow = datetime.date(today.year, today.month, today.day+1)
+            tomorrow = datetime.date(today.year, today.month, today.day + 1)
             with open('scedullar.json', 'r', encoding='utf-8') as f:
                 scedullar = json.load(f)
-            return scedullar[userData['group']][calendar.day_name[tomorrow.weekday()]]
+            day_str = calendar.day_name[tomorrow.weekday()]
+            # use another param cos tomorrow mb the other week
+            next_week_even_str = NOT_EVEN_WEEK_STR
+            if isWeekEven(tomorrow):
+                next_week_even_str = EVEN_WEEK_STR
+            if day_str + next_week_even_str in scedullar[userData['group']]:
+                day_str += next_week_even_str
+            return scedullar[userData['group']][day_str]
 
         elif msg == 'расписание':
             if userData['group'] == '':
@@ -558,14 +600,24 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
                 scedullar = scedullar[userData['group']]
             else:
                 return 'твоей группы пока нет в расписании, обратись к админу сообщества'
-            text = ''
-            text += 'ПОНЕДЕЛЬНИК\n\n' + scedullar['Monday'] + '\n=======================\n\n'
-            text += 'ВТОРНИК\n\n' + scedullar['Tuesday'] + '\n=======================\n\n'
-            text += 'СРЕДА\n\n' + scedullar['Wednesday'] + '\n=======================\n\n'
-            text += 'ЧЕТВЕРГ\n\n' + scedullar['Thursday'] + '\n=======================\n\n'
-            text += 'ПЯТНИЦА\n\n' + scedullar['Friday'] + '\n=======================\n\n'
-            text += 'СУББОТА\n\n' + scedullar['Saturday'] + '\n=======================\n\n'
-            text += 'ВОСКРЕСЕНЬЕ\n\n' + scedullar['Sunday']
+            text = '//////////////////////////////////////////////\n\n'
+            for day in [
+                ['ПОНЕДЕЛЬНИК\n\n', 'Monday'    ],
+                ['ВТОРНИК\n\n',     'Tuesday'   ],
+                ['СРЕДА\n\n',       'Wednesday' ],
+                ['ЧЕТВЕРГ\n\n',     'Thursday'  ],
+                ['ПЯТНИЦА\n\n',     'Friday'    ],
+                ['СУББОТА\n\n',     'Saturday'  ],
+                ['ВОСКРЕСЕНЬЕ\n\n', 'Sunday'    ],
+            ]:
+                text += day[0]
+                if day[1] + EVEN_WEEK_STR in scedullar and day[1] + NOT_EVEN_WEEK_STR in scedullar:
+                    text += "ЧЕТНАЯ\n\n"   + scedullar[day[1] + EVEN_WEEK_STR] + "\n\n----------------------------------------------\n\n"
+                    text += "НЕЧЕТНАЯ\n\n" + scedullar[day[1] + NOT_EVEN_WEEK_STR]
+                else:
+                    text += scedullar[day[1]]
+                text += '\n\n//////////////////////////////////////////////\n\n'
+                
             return text
 
         elif msg == 'неделя':
@@ -574,7 +626,7 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
             return 'нечетная'
 
 
-        elif msg.startswith('редактировать'):
+        elif msg.startswith('редактировать') or msg.startswith('редактирвоать'):
 
             if userData['group'] == '':
                 return 'сначала укажи свою группу (чекай команду help)'
@@ -592,15 +644,29 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
                 if len(commands) < 2:
                     return 'неправильная команда'
 
-                weekday = weekday_ru_en( commands[1] )
+                weekday = weekday_ru_en(commands[1])
                 if not weekday:
                     return 'неправильная команда'
-                new_text = msgReal[ start_pointer+1: ]
+                new_day_str = msgReal[start_pointer + 1: ]
 
                 with open('scedullar.json', 'r', encoding='utf-8') as f:
                     scedullar = json.load(f)
-                del scedullar[userData['group']][weekday]
-                scedullar[userData['group']][weekday] = new_text
+                
+                # we have week even param
+                if len(commands) > 2 and commands[2] != '':
+                    even_param = EVEN_WEEK_STR
+                    if commands[2] == 'неч':
+                        even_param = NOT_EVEN_WEEK_STR
+                    weekday += even_param
+                else:
+                    if weekday + EVEN_WEEK_STR in scedullar[userData['group']]:
+                        del scedullar[userData['group']][weekday + EVEN_WEEK_STR]
+                    if weekday + NOT_EVEN_WEEK_STR in scedullar[userData['group']]:
+                        del scedullar[userData['group']][weekday + NOT_EVEN_WEEK_STR]
+
+                if weekday in scedullar[userData['group']]:
+                    del scedullar[userData['group']][weekday]
+                scedullar[userData['group']][weekday] = new_day_str
                 scedullar_update_str = json.dumps(scedullar, sort_keys=True, indent=4)
                 with open('scedullar.json', 'w') as f:
                     f.write(scedullar_update_str)
