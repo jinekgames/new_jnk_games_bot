@@ -357,8 +357,8 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
 
         elif msg == '89':
             return '@all\nВСЕ К ДК'
-        
-        if msg.startswith('кто мы'):
+
+        elif msg.startswith('кто мы'):
             if 'abils' in userData and 'vyalyi' in userData['abils']:
                 return 'ВЯЛЫЕ ПИТОНЫ!!1!!1'
 
