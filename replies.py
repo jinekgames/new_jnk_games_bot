@@ -352,17 +352,28 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
 
         # ВЯЛЫЕЕ КОМАНДЫ
 
-        elif msg == 'шеф':
+        elif msg == 'шеф' or msg == 'шэф':
             return '@all\nШЕФ В ДС'
+
+        elif msg == '89':
+            return '@all\nВСЕ К ДК'
+
+        if 'abils' in userData and 'vyalyi' in userData['abils']:
         
-        elif msg.startswith('кто мы'):
-            return 'ВЯЛЫЕ ПИТОНЫ!!1!!1'
+            if msg.startswith('кто мы'):
+                return 'ВЯЛЫЕ ПИТОНЫ!!1!!1'
 
-        elif msg.startswith('чего мы хотим'):
-            return 'ВЛАСТИ ОСТРЫХ КОЗЫРЬКОВ!!!!!1!!!!'
+            elif msg.startswith('чего мы хотим'):
+                return 'ВЛАСТИ ОСТРЫХ КОЗЫРЬКОВ!!!!!1!!!!'
 
-        elif contain5(msg, ['бан', 'кик']):
-            return 'По приказу Острых Козырков'
+        elif contain5(msg, ['бан', 'кик']) and not contain5(msg, ['не бан', 'не кик', 'разбан']):
+            if 'abils' in userData and 'vyalyi' in userData['abils']:
+                return 'По приказу Острых Козырков'
+            elif userData['admin'] < 10:
+                return 'ты че ахуел мы тя самого ща забаним нахуй'
+
+        elif _contain5(msg, 'контейнер'):
+            return 'насрал в контейнер'
 
 
 
@@ -444,6 +455,38 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
                 return 'user not found'
             userData_['ban']['time'] = 0
             return 'done'
+
+        elif msg.startswith('setvyalyi'):
+            if userData['admin'] < 500 and ( userData['admin'] < 100 or (not 'abils' in userData) and (not 'vyalyi' in userData['abils']) ):
+                return 'принять в банду могут только вялые админы лвла не ниже 100'
+
+            distId = msg.split(' ')
+            if len(distId) != 2:
+                return 'incorrect sintaxys'
+            distId = distId[1]
+            userData_ = usersDataBase.getUserData(distId)
+            if not userData_:
+                return 'user not found'
+            if not 'abils' in userData_:
+                userData_['abils'] = {}
+            userData_['abils']['vyalyi'] = 'yes'
+            return 'ПО ПРИКАЗУ ОСТРЫХ КОЗЫРЬКОВ'
+
+        elif msg.startswith('delvyalyi'):
+            if userData['admin'] < 500 and ( userData['admin'] < 100 or (not 'abils' in userData) and (not 'vyalyi' in userData['abils']) ):
+                return 'исключить из банды могут только вялые админы лвла не ниже 100'
+
+            distId = msg.split(' ')
+            if len(distId) != 2:
+                return 'incorrect sintaxys'
+            distId = distId[1]
+            userData_ = usersDataBase.getUserData(distId)
+            if not userData_:
+                return 'user not found'
+            if 'abils' in userData_:
+                if 'vyalyi' in userData_['abils']:
+                    del userData_['abils']['vyalyi']
+            return 'ПО ПРИКАЗУ ОСТРЫХ КОЗЫРЬКОВ'
 
         elif msg.startswith('userdata'):
             if userData['admin'] < 100:
@@ -762,6 +805,9 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
                 '\nты отправил боту ' + str(userData['msgCount']) + ' сообщений(е)'
             if 'man' in userData:
                 text += '\nмужчина: ' + choo5eBySex('да', 'нет', userData['man'])
+            if 'abils' in userData:
+                if 'vyalyi' in userData['abils']:
+                    text += '\nсостоит в клубе вялые питоны'
             if len(userData['group']) > 0:
                 text += '\nтвоя группа: ' + userData['group']
             if userData['admin']:
