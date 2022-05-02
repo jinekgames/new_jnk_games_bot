@@ -357,13 +357,13 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
 
         elif msg == '89':
             return '@all\nВСЕ К ДК'
-
-        if 'abils' in userData and 'vyalyi' in userData['abils']:
         
-            if msg.startswith('кто мы'):
+        if msg.startswith('кто мы'):
+            if 'abils' in userData and 'vyalyi' in userData['abils']:
                 return 'ВЯЛЫЕ ПИТОНЫ!!1!!1'
 
-            elif msg.startswith('чего мы хотим'):
+        elif msg.startswith('чего мы хотим'):
+            if 'abils' in userData and 'vyalyi' in userData['abils']:
                 return 'ВЛАСТИ ОСТРЫХ КОЗЫРЬКОВ!!!!!1!!!!'
 
         elif contain5(msg, ['бан', 'кик']) and not contain5(msg, ['не бан', 'не кик', 'разбан']):
