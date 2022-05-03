@@ -3,7 +3,7 @@ from os import truncate
 from users_db import usersDataBase
 from str_module import contain5, end5, i5, choo5e, endswith_list, _contain5, _end5, replace_layout, startswith_list, dicklist_search
 from vars import public_email_pswrd, secret_msg_chance, bad_answ_prob
-from  help_msgs import constructHelpMsg
+from  help_msgs import constructHelpMsg, squad_rools
 from scedullar import weekday_ru_en, EVEN_WEEK_STR, NOT_EVEN_WEEK_STR
 
 import time
@@ -375,6 +375,8 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
         elif _contain5(msg, 'контейнер'):
             return 'насрал в контейнер'
 
+        elif msg == 'правила' or msg.startswith('правила '):
+            return squad_rools
 
 
         # USER DATA FUNCTIONS
