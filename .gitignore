@@ -135,3 +135,5 @@ backup/
 test.py
 error_msgs.txt
 vars.py
+scedullar.json
+users.json

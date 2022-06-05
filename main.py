@@ -1,6 +1,7 @@
 from random import randint
 from vk_api import bot_longpoll
 from users_db import usersDataBase                          # importing users database module
+from server_global_settings import globalServerSettings
 from replies import msgProc, sendEmail2Admin, sendMsg2id, sendMsgWithPhoto    # importing message pricessing function
 from vars import group_token, debug, sleep_timeout, admin_token, dbUpdateCooldown, admin_id, public_id     # importing variables of bot init
 import time
@@ -36,6 +37,7 @@ def main():
 
     # log onto db
     usersDataBase.updateList()
+    globalServerSettings.update()
 
     # bot is running flag
     isBotRunning = True
@@ -125,11 +127,12 @@ def main():
                             print('forward msgs:\n', fwdMsgs)
 
                         # turning bot off condition (admins 500 only)
-                        if userMsg == 'стоп':
+                        if userMsg == 'стоп' or userMsg == 'stop':
                             if userData['admin'] >= 500:
                                 sendMsg(userVkId, 'ok')
                                 sendMsg2id(vkBotSession, admin_id, '@id' + str(userVkId) + ' ВЫКЛЮЧИЛ БОТА')
                                 usersDataBase.forceUpdate()
+                                globalServerSettings.forceUpdate()
                                 isBotRunning = False
                                 break
                             else:
@@ -177,6 +180,7 @@ def main():
                 # update db
                 if (time.time() - dbTimer) >= dbUpdateCooldown:
                     usersDataBase.forceUpdate()
+                    globalServerSettings.forceUpdate()
                     dbTimer = time.time()
 
 

@@ -1,6 +1,7 @@
 from os import truncate
 
 from users_db import usersDataBase
+from server_global_settings import globalServerSettings
 from str_module import contain5, end5, i5, choo5e, endswith_list, _contain5, _end5, replace_layout, startswith_list, dicklist_search
 from vars import public_email_pswrd, secret_msg_chance, bad_answ_prob
 from  help_msgs import constructHelpMsg, squad_rools
@@ -24,6 +25,7 @@ from vk_api.utils import get_random_id
 
 
 requestSession = requests.Session()
+
 
 
 # some static variables
@@ -129,15 +131,61 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
                 sendMsgWithPhoto(vksession, id, '', 'https://sun9-58.userapi.com/impg/z_XjqSY_j1-YKatnrv3sjvGyUFc6MLd3TuOmig/yve7q3j0e8M.jpg?size=1080x791&quality=96&sign=287e6b6a0f789d3501f792ff5d66b8de&type=album', upload)
                 return 'у тебя бан (соси)\nдо ' + time.ctime(userData['ban']['start']+userData['ban']['time'])
 
+
+        
+        # obsiraem loxov
+
+        if id == 187191431:    # danil pul
+            if int(globalServerSettings.getSetting('bulling_lvl')) >= 2:
+                if (random.randint(0, 1000) < int(globalServerSettings.getSetting('bulling_prob'))) * 10:
+                    return 'ты приставка сука компьютерная блять'
+        if id == 379951379:    # nadya kuragina
+            if int(globalServerSettings.getSetting('bulling_lvl')) >= 2:
+                if (random.randint(0, 1000) < int(globalServerSettings.getSetting('bulling_prob'))) * 10:
+                    return 'кринж'
+
+        if random.randint(0, 1000) < secret_msg_chance:
+            if int(globalServerSettings.getSetting('bulling_lvl')) >= 1:
+                return choo5e([ 'мне похуй', 'много хочешь' ])
+
+        
+
+
+        # GLOBAL SERVER SETTING
+
+        if msg.startswith('setglobal'):
+            if userData['admin'] >= 400:
+                cmds = msg.split(' ')
+                setting_name  = cmds[1]
+                setting_value = cmds[2]
+                globalServerSettings.setSetting(setting_name, setting_value)
+                return 'was set param \'' + setting_name + '\' with value \'' + setting_value + '\''
+            return 'ur not admin 400+'
+        elif msg.startswith('getglobal'):
+            if userData['admin'] >= 400:
+                cmds = msg.split(' ')
+                setting_name  = cmds[1]
+                setting_value = globalServerSettings.getSetting(setting_name)
+                if setting_value:
+                    return 'param \'' + setting_name + '\' has value \'' + setting_value + '\''
+                else:
+                    return 'no such setting'
+            return 'ur not admin 400+'
+        elif msg == 'getallglobal':
+            if userData['admin'] >= 400:
+                setting_str = ''
+                globalsettings = globalServerSettings.get()
+                for key in globalsettings:
+                    setting_str += str(key).rjust(15) + ' :   ' + str(globalsettings[str(key)]) + '\n'
+                return setting_str
+            return 'ur not admin 400+'
+
+
         
         
         # HUINYA
 
-        rnd_int = random.randint(0, 1000)
-        if rnd_int < secret_msg_chance:
-            return choo5e([ 'мне похуй', 'много хочешь' ])
-
-        if contain5(msg, [ 'поздравить', 'подравляю', 'поздравляю', 'с др' ]):
+        elif contain5(msg, [ 'поздравить', 'подравляю', 'поздравляю', 'с др' ]):
             if contain5(msg, [ 'данила', 'донила', 'даниила' ]):
                 return sendMsg2id(vksession, 187191431, userData['firstname'] + ' поздравил тебя с др')
                 """
@@ -515,11 +563,13 @@ def msgProc(id, msgReal: str, vksession, upload, fwdmsgs, peer_id):
             if userData['admin'] < 500:
                 return 'действие доступно только админам лвла не ниже 500'
             usersDataBase.forceUpdate()
+            globalServerSettings.forceUpdate()
             return 'updated'
         elif msg == 'restore db':
             if userData['admin'] < 500:
                 return 'действие доступно только админам лвла не ниже 500'
             usersDataBase.updateList()
+            globalServerSettings.update()
             return 'restored'
 
         elif msg.startswith('updatefield'):
